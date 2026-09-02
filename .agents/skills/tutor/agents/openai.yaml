@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tutor"
+  short_description: "Turn a lesson into guided tutoring"
+  default_prompt: "Use $tutor to guide me through a lesson one step at a time."
