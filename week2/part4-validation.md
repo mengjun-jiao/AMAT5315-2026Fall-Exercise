@@ -32,3 +32,5 @@ Green: red SHA 91db1ba；同一真实video命令测试退出0，1 passed，真�
 ## Task 7
 Task6 green: 7ddc24c。Red: `cargo test --release --manifest-path week2/md/Cargo.toml --test acceptance -- --nocapture`退出101：默认完整物理验收已通过，只有Makefile未提供的真实入口测试失败。没有人为使物理检查失败。
 默认seed=2026：200帧；drift=2.389356121140325e-4；T_speed=4.933536579154182e-1；abs(T_speed-0.5)=6.646342084581758e-3；chi2/22=9.240727272727269e-1。
+Green: red SHA 26a138e；release acceptance测试退出0，2 passed。Makefile为真实Tab，默认run与make真实集成通过。
+亲自在week2执行：`make reproduce`、`./md/target/release/md check artifacts`、`PATH=/tmp/amat5315-ffmpeg:$PATH MD_PYTHON=/tmp/amat5315-field-venv/bin/python ./md/target/release/md video artifacts --out fluid.mp4`，三者退出0。默认轨迹200帧；三个指标与首次测试相同；完整fluid.mp4真实编码200帧、929356字节。

@@ -118,3 +118,115 @@ MPLCONFIGDIR=/tmp/amat5315-matplotlib /tmp/amat5315-field-venv/bin/python plot_t
 这只是规定观察窗口内的结果。完整 red/green 证据见 [验证记录](part3-validation.md)。
 
 ![两原子相对能量误差](dimer.png)
+
+## Part 4：周期 LJ 流体、轨迹检查与视频
+
+`System` 使用显式模型枚举，共用 Euler/velocity-Verlet。旧 `System::new`、
+两原子实验与原始 `energy`/`force` 保持开放边界和无截断；新流体入口使用周期边界、
+rc=2.5 的势能平移截断，力不做平移，按 i<j 成对计算。
+默认 N=100、rho=0.8、T=0.5、dt=0.01、平衡2000步、正式10000步、
+每50步保存、seed=2026、velocity-verlet。默认生成200帧，不包含正式第0步。
+初始去质心速度并缩放，平衡每50步缩放；正式阶段关闭温控。
+
+`--n` 接受平方数且平方根为偶数（100、400、1600均支持），盒长按密度计算，
+还须满足两边长度均大于2*rc。非法参数明确报错。本次只执行100原子实验。
+随机数固定 ChaCha8Rng、StandardNormal，Cargo.lock固定依赖；同一构建环境可复现。
+跨工具链/浮点平台不承诺逐位相同。
+
+### 模拟与检查（不需要 Python 或 ffmpeg）
+
+需要Rust/Cargo（本次实测rustc 1.98.1；依赖以Cargo.lock为准），`make reproduce`
+还需要GNU Make。首次构建需要下载Cargo依赖。以下命令均从 `week2/` 执行：
+
+```bash
+make reproduce
+./md/target/release/md check artifacts
+```
+
+Makefile 的 recipe 使用真实Tab；只执行release默认模拟，生成
+`artifacts/run.json` 和 `artifacts/traj.jsonl`，不自动检查或生成视频。
+设置了 `CARGO_TARGET_DIR` 时，请相应调整后续二进制路径。
+直接调用CLI的准确形式为：
+
+```bash
+./md/target/release/md run --out artifacts
+./md/target/release/md check artifacts
+./md/target/release/md video artifacts --out fluid.mp4
+```
+
+run支持 `--n --rho --temperature --dt --eq-steps --steps --sample-every --seed
+--integrator --out`；积分器名称为 `velocity-verlet` 或 `euler`。
+check输入目录为位置参数；任何文件错误、保存能量不一致或物理验收失败均非零退出。
+它从每帧位置与速度重算能量，不推进模拟、不相信保存的能量。
+交叉核对容差为 `1e-10*max(1,abs(recomputed))`。
+
+默认教学验收：以第一保存帧重算总能量为E0，首尾各
+`k=max(1,floor(frame_count/10))` 帧的平均能量差除以abs(E0)小于2e-3；
+所有速率的 `T_speed=mean(v²)/2` 与0.5差值小于0.05；
+二维Maxwell-Boltzmann分布的24个等概率箱，`sum((Ob-Eb)²/Eb)/22<2`。
+最后一项仅是教学容差，不报告正式显著性或p值。check的温度目标固定0.5，
+不会随元数据temperature改变；video仅要求轨迹结构合法，不要求这些默认指标通过。
+
+### 视频依赖与环境重建
+
+视频需要Python 3、NumPy、Matplotlib、ffmpeg、ffprobe及libx264编码器。
+`MD_PYTHON` 指定**实际Python解释器路径**；未设置时使用PATH中的python3。
+以下步骤可以在 `/tmp` 环境被清理后重新建立，不依赖旧环境仍存在：
+
+```bash
+python3 -m venv /tmp/amat5315-field-venv
+/tmp/amat5315-field-venv/bin/python -m pip install numpy==2.5.3 matplotlib==3.11.1 pytest==9.1.1
+export MD_PYTHON=/tmp/amat5315-field-venv/bin/python
+export MPLCONFIGDIR=/tmp/amat5315-matplotlib
+```
+
+若缺少ensurepip，可用系统pip重建：
+
+```bash
+python3 -m venv --without-pip /tmp/amat5315-field-venv
+python3 -m pip --python /tmp/amat5315-field-venv/bin/python install numpy==2.5.3 matplotlib==3.11.1 pytest==9.1.1
+export MD_PYTHON=/tmp/amat5315-field-venv/bin/python
+export MPLCONFIGDIR=/tmp/amat5315-matplotlib
+```
+
+Ubuntu可通过 `sudo apt-get install ffmpeg` 安装编码依赖。
+本次无交互sudo，使用Linux x86_64静态包；可按以下命令重建：
+
+```bash
+curl -L --fail https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/amat5315-ffmpeg.tar.xz
+mkdir -p /tmp/amat5315-ffmpeg
+tar -xJf /tmp/amat5315-ffmpeg.tar.xz -C /tmp/amat5315-ffmpeg --strip-components=1
+export PATH=/tmp/amat5315-ffmpeg:$PATH
+ffmpeg -version
+ffprobe -version
+"$MD_PYTHON" -c 'import numpy, matplotlib'
+./md/target/release/md video artifacts --out fluid.mp4
+```
+
+本次静态包版本7.0.2，含libx264。其他CPU/系统应使用适合本机的ffmpeg安装包。
+`md video` 自行预检这些依赖，缺失时报错；视频测试不忽略、不静默跳过。
+
+右图采用**最近20个保存帧的滑动平均**，不足20帧时使用已有帧，标题标出实际窗口。
+80个径向区间，minimum image距离最多为短盒边一半，不受力截断rc限制。
+若窗口F帧的无序对累计数为C_b，rho=N/(Lx*Ly)，则
+`g_b=2*C_b/[F*N*rho*pi*(r_outer²-r_inner²)]`。
+有限N均匀体系期望为(N-1)/N，不再缩放尾部到1。
+Rust计算RDF，Python仅绘制；20fps，每保存帧一视频帧，默认200帧、10秒。
+编码后实际检查帧数与小于2,000,000字节的限制。
+
+最终 [fluid.mp4](fluid.mp4) 纳入Git；`artifacts/` 轨迹、`target/` 构建缓存及临时视频
+不纳入Git，没有全局mp4忽略规则，后续cold.mp4、hot.mp4也可以提交。
+课程viewer请加载 `week2/artifacts/run.json` 与 `week2/artifacts/traj.jsonl`；
+**课程viewer手动检查由仓库 owner 后续完成，尚未记录为通过。**
+
+### 全部回归（包含真实视频测试）
+
+完成上述视频环境设置后，从week2运行：
+
+```bash
+cargo test --release --manifest-path md/Cargo.toml --all-targets
+cargo test --manifest-path md/Cargo.toml --doc
+"$MD_PYTHON" -m pytest ../week1/
+```
+
+红绿提交、默认物理指标与视频实测结果见 [Part 4 验证记录](part4-validation.md)。
