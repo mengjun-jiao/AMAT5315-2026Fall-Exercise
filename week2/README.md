@@ -71,3 +71,50 @@ cargo test --manifest-path md/Cargo.toml --doc
 ```
 
 ![二维势能与力场](field.png)
+
+## Part 3：两原子积分与能量误差
+
+初始位置 `(0,0)`、`(1.2,0)`，速度均为零，质量均为 1。
+开放边界，使用现有原始 Lennard-Jones 解析势与力，无截断、无温控。
+`dt=0.01`，Euler 和 VelocityVerlet 各运行 500 步；Verlet 另从同一初态运行到 5000 步。
+
+`System` 持有私有 `Vec<[f64; 2]>` 位置、速度及加速度缓存；构造检查长度一致。
+积分器采用 `step(&self, system: &mut System, dt: f64)`，由同一个泛型 `simulate` 驱动。
+Euler 使用旧状态更新；Verlet 按半步速度、位置、刷新加速度、半步速度的顺序更新。
+每条非初态记录都在完整时间步之后产生。
+
+Rust example `md/examples/two_atoms.rs` 计算 `E0=energy(1.2)`，并导出
+`delta=(E-E0)/abs(E0)`；Python 只读取内存中的 CSV 并绘图。
+左图显示两算法的 500 步 delta，右图实际显示 Verlet 5000 步的 `1000*delta`，
+纵轴注明相对能量误差 ×1000；报告中的误差值均为未乘 1000 的原始 delta。
+
+从 `week2/` 运行全部测试：
+
+```bash
+cargo test --manifest-path md/Cargo.toml --all-targets
+cargo test --manifest-path md/Cargo.toml --doc
+/tmp/amat5315-field-venv/bin/python -m pytest ../week1/
+```
+
+重新生成本目录的 `dimer.png`：
+
+```bash
+MPLCONFIGDIR=/tmp/amat5315-matplotlib /tmp/amat5315-field-venv/bin/python plot_two_atoms.py
+```
+
+依赖与 Part 2 相同：Rust/Cargo、Python 3、NumPy、Matplotlib，旧 Python 测试需要 pytest。
+若 `/tmp` 环境已被清理，按上文依赖安装命令重建后再运行。
+脚本使用 Agg 后端，不需要图形桌面；不会保存 CSV 或把构建文件加入 Git。
+
+实测结果（固定学习单参数）：
+
+| 指标 | 结果 | 要求 |
+| --- | --- | --- |
+| Verlet 500 步 max(abs(delta)) | 0.00032504759 | < 0.001，通过 |
+| Euler 500 步最终 delta | 1.9317763 | > 0.5，通过 |
+| Verlet 5000 步 max(abs(delta)) | 0.0003250492 | 长期观察，不加阈值 |
+
+在 `t=0..50` 内，Verlet 误差呈重复振荡，幅度与前 500 步接近，未见明显持续漂移。
+这只是规定观察窗口内的结果。完整 red/green 证据见 [验证记录](part3-validation.md)。
+
+![两原子相对能量误差](dimer.png)
