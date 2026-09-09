@@ -10,7 +10,7 @@ fn run_binary_writes_exact_frames_and_required_fields() {
     assert_eq!(frames.iter().map(|f|f.step).collect::<Vec<_>>(),[50,100]);
     assert_eq!(frames[0].t,0.5);assert_eq!(frames[1].pos.len(),100);
     let json:serde_json::Value=serde_json::from_str(&std::fs::read_to_string(tmp.path().join("run.json")).unwrap()).unwrap();
-    assert_eq!(json.as_object().unwrap().len(),11);assert!(json["box"].is_array());
+    assert_eq!(json.as_object().unwrap().len(),10);assert!(json["box"].is_array());
 }
 #[test]
 fn invalid_n_and_unknown_command_fail() {

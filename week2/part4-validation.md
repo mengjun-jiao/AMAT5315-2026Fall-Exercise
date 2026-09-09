@@ -14,3 +14,4 @@ Green: red SHA 0d3afbf；`cargo test --manifest-path week2/md/Cargo.toml --all-t
 
 ## Task 3
 Task2 green: 4384907。Red: `cargo test --manifest-path week2/md/Cargo.toml --test cli --test trajectory`退出101，CLI 2失败（未生成metadata、未拒绝非法n）；随后单独`--test trajectory`退出101，2失败于write/evolve未实现。不是编译或依赖失败。
+Green: red SHA 8b88a25；all-targets退出0，28 passed。测试最初误数metadata字段为11，逐项核对学习单实际10字段，更正测试计数；输出字段未改变。正式阶段无温控与平衡第50步缩放的真实积分比较通过。

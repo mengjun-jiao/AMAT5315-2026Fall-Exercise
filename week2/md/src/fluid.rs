@@ -42,4 +42,20 @@ pub fn initialize(c:&RunConfig)->Result<System,String> {
     s.rescale_temperature(c.temperature)?;
     Ok(s)
 }
-pub fn evolve<I:crate::Integrator>(_i:&I,_s:&mut System,_c:&RunConfig,_emit:impl FnMut(crate::trajectory::Frame)->Result<(),String>)->Result<(),String> { unimplemented!("Part 4 evolve") }
+pub fn evolve<I:crate::Integrator>(i:&I,s:&mut System,c:&RunConfig,mut emit:impl FnMut(crate::trajectory::Frame)->Result<(),String>)->Result<(),String> {
+    c.validate()?;
+    if s.positions().len()!=c.n { return Err("system/config n mismatch".into()); }
+    for step in 1..=c.eq_steps {
+        i.step(s,c.dt);
+        if step%50==0 { s.rescale_temperature(c.temperature)?; }
+    }
+    for step in 1..=c.steps {
+        i.step(s,c.dt);
+        if step%c.sample_every==0 {
+            let e_pot=s.potential_energy();let e_kin=s.kinetic_energy();
+            if !e_pot.is_finite() || !e_kin.is_finite() { return Err("nonfinite state energy".into()); }
+            emit(crate::trajectory::Frame{step,t:step as f64*c.dt,pos:s.positions().to_vec(),vel:s.velocities().to_vec(),e_pot,e_kin})?;
+        }
+    }
+    Ok(())
+}
