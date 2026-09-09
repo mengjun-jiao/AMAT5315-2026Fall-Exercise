@@ -27,3 +27,4 @@ Green: red SHA 92c4024；`cargo test --manifest-path week2/md/Cargo.toml --test 
 ## Task 6
 Task5 green: 0d75e31。系统sudo安装无法非交互认证；独立ffmpeg/ffprobe 7.0.2已下载到/tmp/amat5315-ffmpeg，确认libx264；Python NumPy/Matplotlib导入成功。没有静默跳过视频测试。
 Red: `PATH=/tmp/amat5315-ffmpeg:$PATH MD_PYTHON=/tmp/amat5315-field-venv/bin/python MPLCONFIGDIR=/tmp/amat5315-matplotlib cargo test --manifest-path week2/md/Cargo.toml --test video`退出101，真实CLI报告video未实现。
+Green: red SHA 91db1ba；同一真实video命令测试退出0，1 passed，真实编码2帧并ffprobe核对，实际文件<2MB；缺失MD_PYTHON明确失败，不跳过。

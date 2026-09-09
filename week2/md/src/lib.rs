@@ -1,3 +1,4 @@
+pub mod video;
 pub mod rdf;
 pub mod check;
 pub mod trajectory;

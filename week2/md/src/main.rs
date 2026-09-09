@@ -39,7 +39,7 @@ fn execute(cli:Cli)->Result<(),String> {
             if !r.passed { return Err("physical acceptance failed".into()); }
             println!("PASS");
         }
-        Some(Commands::Video{..})=>return Err("Part 4 video not implemented".into()),
+        Some(Commands::Video{directory,out})=>md::video::render_video(&directory,&out)?,
     }
     Ok(())
 }
