@@ -24,3 +24,21 @@ not yet implemented: System::new: validation and initial acceleration
 确认失败来自尚未实现的功能，而非编译、拼写、路径或环境错误。
 异常输入测试匹配指定错误消息，没有把任意占位 panic 当作成功。
 red 只含接口、todo!()、测试和本记录，未编造错误实现。
+
+## Green
+
+red 提交：`fd78873`，保留在历史中。
+实现 System 后再次运行测试：5 个集成测试通过，7 个仍在 Euler::step、
+VelocityVerlet::step 或 simulate 的 todo!() 处失败；缓存测试进入 Verlet::step 后失败。
+随后实现两种积分器与共同驱动，没有修改测试阈值或实验参数。
+
+```bash
+cargo test --manifest-path week2/md/Cargo.toml --all-targets
+cargo test --manifest-path week2/md/Cargo.toml --doc
+/tmp/amat5315-field-venv/bin/python -m pytest week1/
+```
+
+以上全部退出码 0：Rust 4 个库测试（包含原有 3 个）及 12 个集成测试通过，
+文档测试 0 项；Week 1 pytest 1 项通过。原有 field example 仍编译成功。
+缓存测试实测初始化 1 次，之后每步恰好增加 1 次真实加速度刷新。
+Verlet 使用半步速度、位置、刷新加速度、半步速度的教学顺序。
