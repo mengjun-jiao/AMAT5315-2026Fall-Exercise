@@ -217,7 +217,7 @@ Rust计算RDF，Python仅绘制；20fps，每保存帧一视频帧，默认200�
 最终 [fluid.mp4](fluid.mp4) 纳入Git；`artifacts/` 轨迹、`target/` 构建缓存及临时视频
 不纳入Git，没有全局mp4忽略规则，后续cold.mp4、hot.mp4也可以提交。
 课程viewer请加载 `week2/artifacts/run.json` 与 `week2/artifacts/traj.jsonl`；
-**课程viewer手动检查由仓库 owner 后续完成，尚未记录为通过。**
+**Part 4 已由仓库 owner 亲自核对通过，包括 check、视频和课程 viewer。**
 
 ### 全部回归（包含真实视频测试）
 
@@ -230,3 +230,172 @@ cargo test --manifest-path md/Cargo.toml --doc
 ```
 
 红绿提交、默认物理指标与视频实测结果见 [Part 4 验证记录](part4-validation.md)。
+
+## Part 5：优化前测速与 profiling 准备
+
+本阶段只准备现有 naive O(N²) 程序的测量环境，不实现cell list、不加热、不发布网页。
+以下Timing/Profile表等待仓库owner亲自测量，空白不代表0或失败。
+
+### Timing
+
+| Program | Median (s) | Range: min–max (s) |
+| --- | --- | --- |
+| NumPy | | |
+| Rust debug | | |
+| Rust release | | |
+
+### Profile
+
+| Version | Force share (%) | Elapsed time (s) |
+| --- | --- | --- |
+| Naive | | |
+| Cell list | | |
+
+### 已完成的环境准备
+
+`md/Cargo.toml` 明确保留release优化和完整调试信息：
+
+```toml
+[profile.release]
+opt-level = 3
+debug = true
+strip = false
+```
+
+已完成debug构建和release安装（从week2重建的等价命令）：
+
+```bash
+cargo build --locked --manifest-path md/Cargo.toml
+cargo install --path md --profile release --locked --force --target-dir md/target --root "$HOME/.cargo"
+export PATH="$HOME/.cargo/bin:$PATH"
+hash -r
+command -v md
+md --help
+cmp "$(command -v md)" md/target/release/md
+readelf -S "$(command -v md)" | grep -E 'debug_info|debug_line|symtab'
+```
+
+准备时`command -v md`实际返回`/home/mengjun/.cargo/bin/md`。
+Cargo安装记录指向本仓库`week2/md`；安装文件和`md/target/release/md`的SHA-256均为
+`5c130709398935f37efc61e9267f8b8e284e6cb2086a9f708de7b719f234379a`。
+构建输出为`release [optimized + debuginfo]`，ELF包含`.debug_info`、`.debug_line`和`.symtab`。
+之后修改源码或构建配置须重新安装再测量，避免PATH上的旧版本参与比较。
+
+课程NumPy基准[原始下载地址](https://giggleliu.github.io/AMAT5315-2026Fall/downloads/week2-sim.py)
+已逐字节保存为`week2-sim.py`，没有修改计算内容。
+下载文件SHA-256为`ec03acaf7e28fed74f4faa28a1b30e57924a0c6a1af4afd04a50f3f22ba9f7bc`。
+原脚本固定SEED=42，在平衡循环s=0,50,...时缩放，保存时使用9位有效数字；
+本项目Rust保持SEED=2026及已确认规则。因此这里比较两份现有程序的端到端运行时间，
+不能声称是同一条初态轨迹或仅力核的微基准。两者默认均为100原子、2000平衡步和10000正式步。
+
+复用`/tmp/amat5315-field-venv/bin/python`，NumPy 2.5.3可导入；
+已通过runpy以非`__main__`方式加载课程脚本验证依赖，没有执行main或模拟。
+若该临时环境已清理，按前文“视频依赖与环境重建”重新建立；只做测速时也可建立仅NumPy环境：
+
+```bash
+python3 -m venv /tmp/amat5315-field-venv
+/tmp/amat5315-field-venv/bin/python -m pip install numpy==2.5.3
+```
+
+缺ensurepip时采用前文`--without-pip`与系统pip的重建方式。不要用系统无NumPy的Python替换命令而忽略错误。
+
+### 第二个Ubuntu终端：亲自测速
+
+以下整段从本仓库`week2/`执行。每项顺序运行5次，报告墙钟时间的中位数及最小/最大值。
+计时包含进程启动、平衡、正式模拟和轨迹写入，不包含编译、check、video或samply。
+各自输出放到`artifacts/part5-timing/`子目录，不覆盖已检查的`artifacts/run.json`和`traj.jsonl`。
+此目录已被Git忽略。测量时不要同时运行其他模拟或profiler。
+
+```bash
+cd /home/mengjun/AMAT5315-2026Fall-Exercise/week2
+export PATH="$HOME/.cargo/bin:$PATH"
+export MD_PYTHON=/tmp/amat5315-field-venv/bin/python
+hash -r
+command -v md
+cmp "$(command -v md)" md/target/release/md
+"$MD_PYTHON" -c 'import numpy; print(numpy.__version__)'
+
+WEEK2_DIR="$(pwd -P)"
+measure_md_program() {
+    local label="$1"
+    shift
+    (
+        set -e
+        mkdir -p "$WEEK2_DIR/artifacts/part5-timing/$label"
+        cd "$WEEK2_DIR/artifacts/part5-timing/$label"
+        : > times.txt
+        for repeat in 1 2 3 4 5; do
+            /usr/bin/time -f '%e' -a -o times.txt "$@" > "run-$repeat.log"
+        done
+    )
+}
+measure_md_program numpy "$MD_PYTHON" "$WEEK2_DIR/week2-sim.py" &&
+measure_md_program rust-debug "$WEEK2_DIR/md/target/debug/md" run --out artifacts &&
+measure_md_program rust-release md run --out artifacts &&
+"$MD_PYTHON" - <<'PY'
+from pathlib import Path
+from statistics import median
+root = Path('artifacts/part5-timing')
+for folder, label in [('numpy', 'NumPy'), ('rust-debug', 'Rust debug'), ('rust-release', 'Rust release')]:
+    values = [float(s) for s in (root / folder / 'times.txt').read_text().splitlines()]
+    if len(values) != 5:
+        raise RuntimeError(f'{label}: expected five successful measurements')
+    print(f'{label}: median={median(values):.2f} s; range={min(values):.2f}–{max(values):.2f} s')
+PY
+```
+
+依赖GNU `/usr/bin/time`（本机已存在；Ubuntu软件包名`time`）。任何一次失败应先检查相应日志，
+不要把不完整测量或失败退出的耗时填入表中。准备阶段没有执行以上测速代码。
+
+### samply命令与当前WSL限制
+
+已安装[samply官方版本0.13.1](https://github.com/mstange/samply)，路径
+`/home/mengjun/.cargo/bin/samply`；`samply --version`与子命令help已检查。
+重建可使用官方预编译安装器（不修改shell配置，PATH由上述export管理）：
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mstange/samply/releases/download/samply-v0.13.1/samply-installer.sh -o /tmp/amat5315-samply-installer.sh
+SAMPLY_NO_MODIFY_PATH=1 sh /tmp/amat5315-samply-installer.sh
+samply --version
+```
+
+准备阶段仅对`/bin/sleep 0.05`做环境探测，没有profile分子模拟。
+在沙箱内、沙箱外均退出1，实际错误为：
+
+```text
+'/proc/sys/kernel/perf_event_paranoid' is currently set to 2.
+In order for samply to work with a non-root user, this level needs
+to be set to 1 or lower.
+You can execute the following command and then try again:
+    echo '1' | sudo tee /proc/sys/kernel/perf_event_paranoid
+```
+
+环境为WSL2内核`6.18.33.2-microsoft-standard-WSL2`。目前确认的是perf事件权限阻塞，
+不能据此断言WSL内核不支持采样。没有自动修改系统sysctl，也没有填写估计的profiling数值。
+若你决定允许本机用户采样，可在第二个Ubuntu终端执行samply提示的临时权限命令后重试：
+
+```bash
+echo '1' | sudo tee /proc/sys/kernel/perf_event_paranoid
+```
+
+从week2采集naive release版本（此命令留给你执行）：
+
+```bash
+mkdir -p artifacts/part5-profile
+samply record --save-only -o artifacts/part5-profile/naive.json.gz -- md run --out artifacts/part5-profile/naive-run
+```
+
+成功后加载查看，使用回环地址提供本机profile，不发布网页：
+
+```bash
+samply load --no-open --address 127.0.0.1 artifacts/part5-profile/naive.json.gz
+```
+
+按终端显示的URL在浏览器打开；profile查看完成后Ctrl-C停止本地服务。
+`--save-only`使采集阶段不自动打开浏览器或启动服务。
+若权限调整后仍报错，请保留完整stderr和退出码；Profile表继续留空，不能用猜测代替采样。
+
+Force share记录所选md主线程完整运行区间中，`md::physics::accelerations`及其子调用的
+inclusive样本占比；不要把父/子行百分比相加重复计数。Elapsed time记录profiler中同一
+md进程完整区间的墙钟跨度，不用CPU样本时间或samply保存文件的总耗时代替。
+保留安装的含符号二进制，避免重装别的版本后无法对应函数。Cell list行目前仅预留，尚未实现或测量。
