@@ -9,12 +9,70 @@ pub enum ForceMethod {
 }
 
 pub(crate) fn visit_candidates(
-    _pos: &[[f64; 2]],
-    _model: &PhysicalModel,
-    _method: ForceMethod,
-    _visit: impl FnMut(usize, usize) -> Result<(), String>,
+    pos: &[[f64; 2]],
+    model: &PhysicalModel,
+    method: ForceMethod,
+    mut visit: impl FnMut(usize, usize) -> Result<(), String>,
 ) -> Result<(), String> {
-    Err("cell candidate enumeration not implemented".into())
+    model.validate()?;
+    if pos.len() < 2 || !pos.iter().flatten().all(|x| x.is_finite()) {
+        return Err("at least two finite positions required".into());
+    }
+    if method == ForceMethod::Naive {
+        for i in 0..pos.len() {
+            for j in i + 1..pos.len() {
+                visit(i, j)?;
+            }
+        }
+        return Ok(());
+    }
+    let PhysicalModel::PeriodicShiftedLennardJones { box_size, rc } = model else {
+        return Err("cell lists require periodic model".into());
+    };
+    let nx = (box_size[0] / rc).floor() as usize;
+    let ny = (box_size[1] / rc).floor() as usize;
+    if nx < 1 || ny < 1 {
+        return Err("periodic box must contain at least one cell per axis".into());
+    }
+    let wx = box_size[0] / nx as f64;
+    let wy = box_size[1] / ny as f64;
+    let count = nx
+        .checked_mul(ny)
+        .ok_or_else(|| "grid size overflow".to_string())?;
+    let mut buckets: Vec<Vec<usize>> = Vec::new();
+    buckets
+        .try_reserve_exact(count)
+        .map_err(|e| format!("grid allocation: {e}"))?;
+    buckets.resize_with(count, Vec::new);
+    let mut atom_cells = Vec::with_capacity(pos.len());
+    for (i, &p) in pos.iter().enumerate() {
+        let wrapped = model.wrap(p);
+        let cx = ((wrapped[0] / wx).floor() as usize).min(nx - 1);
+        let cy = ((wrapped[1] / wy).floor() as usize).min(ny - 1);
+        atom_cells.push((cx, cy));
+        buckets[cy * nx + cx].push(i);
+    }
+    for (i, &(cx, cy)) in atom_cells.iter().enumerate() {
+        let xs = [(cx + nx - 1) % nx, cx, (cx + 1) % nx];
+        let ys = [(cy + ny - 1) % ny, cy, (cy + 1) % ny];
+        let mut ids = Vec::with_capacity(9);
+        for y in ys {
+            for x in xs {
+                let id = y * nx + x;
+                if !ids.contains(&id) {
+                    ids.push(id);
+                }
+            }
+        }
+        for id in ids {
+            for &j in &buckets[id] {
+                if j > i {
+                    visit(i, j)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
