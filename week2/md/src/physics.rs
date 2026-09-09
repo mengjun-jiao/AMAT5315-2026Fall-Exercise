@@ -108,3 +108,20 @@ pub fn energies(
     }
     Ok((u, k))
 }
+
+pub fn accelerations_with_method(
+    _pos: &[[f64; 2]],
+    _model: &PhysicalModel,
+    _method: crate::neighbors::ForceMethod,
+) -> Result<Vec<[f64; 2]>, String> {
+    Err("method-aware accelerations not implemented".into())
+}
+
+pub fn energies_with_method(
+    _pos: &[[f64; 2]],
+    _vel: &[[f64; 2]],
+    _model: &PhysicalModel,
+    _method: crate::neighbors::ForceMethod,
+) -> Result<(f64, f64), String> {
+    Err("method-aware energies not implemented".into())
+}
