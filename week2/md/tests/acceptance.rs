@@ -38,6 +38,42 @@ fn default_run_passes_all_three_physical_checks() {
             .success()
     );
 }
+
+#[test]
+fn both_force_methods_pass_default_physical_checks() {
+    let exe = env!("CARGO_BIN_EXE_md");
+    for method in ["naive", "cells"] {
+        let tmp = tempfile::tempdir().unwrap();
+        let out = Command::new(exe)
+            .args(["run", "--force", method, "--out"])
+            .arg(tmp.path())
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{method}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let (meta, frames) = md::trajectory::read_trajectory(tmp.path()).unwrap();
+        assert_eq!(frames.len(), 200);
+        assert_eq!(meta.force_method, if method == "cells" {
+            md::neighbors::ForceMethod::Cells
+        } else {
+            md::neighbors::ForceMethod::Naive
+        });
+        let report = md::check::check_directory(tmp.path()).unwrap();
+        eprintln!(
+            "{method}: drift={:.15e}, T_speed={:.15e}, abs(T-0.5)={:.15e}, chi2/22={:.15e}",
+            report.drift,
+            report.t_speed,
+            (report.t_speed - 0.5).abs(),
+            report.mb_score
+        );
+        assert!(report.drift < 2e-3);
+        assert!((report.t_speed - 0.5).abs() < 0.05);
+        assert!(report.mb_score < 2.);
+    }
+}
 #[test]
 fn make_reproduce_runs_release_without_video_dependencies() {
     let tmp = tempfile::tempdir().unwrap();

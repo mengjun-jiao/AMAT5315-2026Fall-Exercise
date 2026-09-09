@@ -1,5 +1,6 @@
 use md::fluid::{RunConfig, lattice};
 use md::trajectory::{Frame, RunMetadata};
+use md::neighbors::ForceMethod;
 #[test]
 fn check_recomputes_known_state_without_simulation() {
     let c = RunConfig {
@@ -33,6 +34,7 @@ fn check_recomputes_known_state_without_simulation() {
     let m = RunMetadata {
         config: c,
         box_size: b,
+        force_method: ForceMethod::Naive,
     };
     let report = md::check::evaluate(&m, &[f.clone()]).unwrap();
     assert_eq!(report.t_speed, 0.5);

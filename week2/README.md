@@ -155,7 +155,8 @@ Makefile 的 recipe 使用真实Tab；只执行release默认模拟，生成
 ```
 
 run支持 `--n --rho --temperature --dt --eq-steps --steps --sample-every --seed
---integrator --out`；积分器名称为 `velocity-verlet` 或 `euler`。
+--integrator --force --out`；积分器名称为 `velocity-verlet` 或 `euler`，`--force`
+可选 `naive` 或 `cells`，默认是 `cells`。
 check输入目录为位置参数；任何文件错误、保存能量不一致或物理验收失败均非零退出。
 它从每帧位置与速度重算能量，不推进模拟、不相信保存的能量。
 交叉核对容差为 `1e-10*max(1,abs(recomputed))`。
@@ -230,6 +231,25 @@ cargo test --manifest-path md/Cargo.toml --doc
 ```
 
 红绿提交、默认物理指标与视频实测结果见 [Part 4 验证记录](part4-validation.md)。
+
+## Part 5：cell list 邻居搜索
+
+周期流体现在把邻居搜索策略与成对 Lennard-Jones 物理计算分开。`--force naive`
+保留全配对路径；`--force cells` 按当前位置重建周期 cell list，搜索自身及周围八个
+格子，候选格子编号先去重，再以 `j > i` 保证每对只计算一次。两条路径共用
+minimum-image、截断判断、势能平移和解析力公式。开放边界的旧两原子模型继续使用
+naive 路径。
+
+`run.json` 新增 `force_method`，记录实际策略为 `"naive"` 或 `"cells"`。读取缺少
+该字段的旧文件时按 `naive` 处理；未知值或 `null` 会拒绝。`md check` 始终从位置和
+速度用 naive 路径重算物理量，不依据元数据选择检查算法。新增的 cells 轨迹供课程
+viewer 手动加载，独立保存于 `week2/artifacts/cells-viewer/run.json` 和
+`week2/artifacts/cells-viewer/traj.jsonl`，不会覆盖 Part 4 轨迹；新增字段与 viewer
+源码的 JSON 读取方式兼容，浏览器手动加载仍待课程 owner 检查。
+
+本轮没有执行 Part 5 profiling 或规模测速。后续 profiling 负载固定为
+`--n 400 --eq-steps 200 --steps 1000`；规模测速另用 N=100、400、1600、
+`--eq-steps 100 --steps 500`，两组实验不混用。
 
 ## Part 5：优化前测速与 profiling 准备
 
