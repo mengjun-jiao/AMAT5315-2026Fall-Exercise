@@ -4,7 +4,7 @@
 
 用户已认可整体结构，并明确要求本版本使用动态向量与无状态积分器。
 实验参数与验收标准按用户明确转述的学习单要求固定如下，不是建议值。
-本轮只修订并提交文档，不执行实验。
+用户已批准按修订计划在当前会话执行 Part 3，不启动子代理。
 
 ## 范围
 
@@ -57,10 +57,10 @@ Euler 对每个原子执行 `x_new = x_old + v_old * dt`，
 
 Velocity Verlet 使用构造时已缓存的 `a_old`：
 
-1. `x_new = x_old + v_old * dt + 0.5 * a_old * dt²`。
-2. `v_half = v_old + 0.5 * a_old * dt`。
+1. `v += 0.5 * dt * a_old`。
+2. `x += dt * v`。
 3. 对新位置调用一次 `refresh_accelerations()`，得到 `a_new`。
-4. `v_new = v_half + 0.5 * a_new * dt`。
+4. `v += 0.5 * dt * a_new`。
 
 积分器只借用 `&self`，不存储步数、时间或加速度。无需复制整个 System 来保存旧状态。
 
@@ -78,7 +78,7 @@ Euler 与 Verlet 各运行 500 步，Verlet 另从同一初态运行到 5000 步
 三组数据分别标为 Euler、VelocityVerlet、VelocityVerletLong；不运行 Euler 5000 步。
 Rust 用 `E0 = crate::energy(1.2)` 计算 `delta = (E-E0)/abs(E0)`，一并导出。
 Python 通过子进程读取 CSV 到内存，不保存中间数据、不重写力或势能公式。
-输出 `week2/two_atoms_energy.png`，显示两算法的总能量及相对初态能量偏差。
+输出 `week2/dimer.png`，左右两个面板：左图显示两算法 500 步的 delta；右图显示 Verlet 5000 步的 1000*delta，纵轴明确标注相对能量误差 ×1000。不增加总能量面板。
 
 ## 学习单规定的实验与验收
 

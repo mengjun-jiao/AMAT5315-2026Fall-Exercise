@@ -1,7 +1,7 @@
 # Part 3 Two-Atom Implementation Plan
 
-> **执行状态：仅供审核，不执行。** 按用户要求，不选择或调用尚未安装的执行流程技能。
-> 下列复选框均为未来步骤，代码块是拟议文件内容，并未写入生产代码或运行。
+> **执行状态：用户已批准执行。** 当前会话直接使用 test-driven-development，不调用未安装的执行技能、不启动子代理。
+> 下列为执行步骤；完成情况和实测结果记录在 week2/part3-validation.md。
 
 **Goal:** 用同一个泛型驱动比较两个原子的显式 Euler 与 Velocity Verlet，保留 red/green 提交证据。
 
@@ -25,7 +25,7 @@
 - 保留全部旧测试，先提交已验证失败的 red，再提交实现及通过验证的 green。
 - Rust 调用现有 energy 和 force 产生数据，Python 只读取数据和绘图。
 - 开放边界，使用原始 Lennard-Jones 势；无截断、无温控、无周期边界或邻居表，不运行多原子实验。
-- 不 push；实施计划须经用户审核后才能执行。
+- 不 push；实施计划已获用户批准，按顺序执行。
 
 **学习单固定要求：** 初始位置 `(0,0)`、`(1.2,0)`；初速度均为零；质量均为 1；
 `dt=0.01`。Euler 与 Verlet 各运行 500 步，Verlet 另从同一初态运行到 5000 步。
@@ -380,9 +380,8 @@ impl Integrator for VelocityVerlet {
         assert!(dt.is_finite() && dt > 0.0, "positive finite dt");
         for i in 0..system.positions.len() {
             for axis in 0..2 {
-                system.positions[i][axis] += system.velocities[i][axis]*dt
-                    + 0.5*system.accelerations[i][axis]*dt*dt;
-                system.velocities[i][axis] += 0.5*system.accelerations[i][axis]*dt;
+                system.velocities[i][axis] += 0.5*dt*system.accelerations[i][axis];
+                system.positions[i][axis] += dt*system.velocities[i][axis];
             }
         }
         system.refresh_accelerations();
@@ -441,7 +440,7 @@ git commit -m "feat: implement two-atom Euler and Verlet dynamics (green)"
 ## Task 3：Rust 导出、Python 绘图与复现说明
 
 **Files:** 新增 `week2/md/examples/two_atoms.rs`、`week2/plot_two_atoms.py`、
-`week2/two_atoms_energy.png`；更新 `week2/README.md`、`week2/part3-validation.md`。
+`week2/dimer.png`；更新 `week2/README.md`、`week2/part3-validation.md`。
 **Interfaces:** 消费 Task 2 的 simulate/Sample；CSV 列固定如下；不修改 Part 2 的图片和脚本。
 
 - [ ] 添加 Rust example，分别以同一初态实例化 System；两个算法调用同一个泛型函数。
@@ -495,7 +494,7 @@ def main():
                          dtype=None, encoding="utf-8")
     runs = {"Euler": 500, "VelocityVerlet": 500, "VelocityVerletLong": 5000}
     assert set(data["method"]) == set(runs)
-    fig, axes = plt.subplots(2, 2, figsize=(12, 7))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
     initial_energies = []
     for method, steps in runs.items():
         rows = data[data["method"] == method]
@@ -509,8 +508,8 @@ def main():
         initial_energies.append(rows["e0"][0])
         col = 1 if steps == 5000 else 0
         label = "VelocityVerlet" if col == 1 else method
-        axes[0, col].plot(rows["time"], rows["total"], label=label)
-        axes[1, col].plot(rows["time"], rows["delta"], label=label)
+        displayed = rows["delta"] * (1000 if col == 1 else 1)
+        axes[col].plot(rows["time"], displayed, label=label)
         print(f"{method}: max(abs(delta))={max(abs(rows['delta'])):.8g}, "
               f"final delta={rows['delta'][-1]:.8g}")
     np.testing.assert_allclose(initial_energies, initial_energies[0], rtol=0, atol=0)
@@ -519,16 +518,15 @@ def main():
     for field in ("time", "kinetic", "potential", "total", "e0", "delta"):
         np.testing.assert_allclose(short[field], long[field][:501], rtol=0, atol=1e-12)
     for col, title in enumerate(("500 steps: Euler and Verlet", "5000 steps: Verlet observation")):
-        axes[0, col].set_title(title)
-        axes[0, col].set_ylabel("Total energy [reduced units]")
-        axes[1, col].set_ylabel("delta = (E - E0) / |E0|")
-        for ax in axes[:, col]:
-            ax.set_xlabel("Time [reduced units]")
-            ax.grid(alpha=0.25)
-            ax.legend()
+        ax = axes[col]
+        ax.set_title(title)
+        ax.set_ylabel("Relative energy error ×1000" if col == 1 else "delta = (E - E0) / |E0|")
+        ax.set_xlabel("Time [reduced units]")
+        ax.grid(alpha=0.25)
+        ax.legend()
     fig.suptitle("Two atoms: (0,0), (1.2,0); v=0; mass=1; dt=0.01; open boundaries")
     fig.tight_layout()
-    fig.savefig(week / "two_atoms_energy.png", dpi=200)
+    fig.savefig(week / "dimer.png", dpi=200)
     plt.close(fig)
 
 if __name__ == "__main__":
@@ -548,12 +546,12 @@ cargo test --manifest-path md/Cargo.toml --doc
 - [ ] 查看实际图片，检查轴标、图例、两种算法、500/5000 步面板、完整步能量记录。
   若曲线重叠影响阅读，可以增加误差局部图或科学计数格式；不可裁掉错误数据或改变验收阈值。
 - [ ] 将上述重建命令、依赖、CSV 数据来源、批准的参数、验收与观察的区别，
-  以及 `![两原子能量比较](two_atoms_energy.png)` 追加到 `week2/README.md`。
+  以及 `![两原子能量比较](dimer.png)` 追加到 `week2/README.md`。
   `part3-validation.md` 记录实测结果与异常处理，不保存整份 CSV 或构建日志。
 - [ ] 在仓库根目录明确暂存相关文件，核查没有缓存、CSV 或构建文件，然后提交：
 
 ```bash
-git add week2/md/examples/two_atoms.rs week2/plot_two_atoms.py week2/two_atoms_energy.png week2/README.md week2/part3-validation.md
+git add week2/md/examples/two_atoms.rs week2/plot_two_atoms.py week2/dimer.png week2/README.md week2/part3-validation.md
 git diff --cached --check
 git diff --cached --stat
 git commit -m "feat: plot Rust-generated two-atom energy comparison"
@@ -567,4 +565,4 @@ Verlet 一次刷新、完整步记录、同一泛型驱动、固定 500/5000 步
 首次行为失败与 red 提交、green 验证、Rust 数据与 Python 呈现、文件及提交范围。
 实现代码与测试接口一致。额外技能执行流程未选择。本轮未运行上面的任何实验或测试。
 
-等待用户审核修订后的完整计划，不自动进入执行阶段。学习单参数与阈值已经明确，不再请求确认这些数值。
+用户已批准本计划并授权直接执行；固定学习单参数和阈值，不 push，不开始 Part 4。
