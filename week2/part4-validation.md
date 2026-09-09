@@ -18,3 +18,4 @@ Green: red SHA 8b88a25；all-targets退出0，28 passed。测试最初误数meta
 
 ## Task 4
 Task3 green: 556d099。Red: `cargo test --manifest-path week2/md/Cargo.toml --test check --lib`退出101：metrics未实现，旧lib 4通过。单独`--test check`：重算与真实CLI篡改拒绝测试在未实现接口/CLI失败，退出101。
+Green: red SHA a2bf12d；all-targets退出0，31 passed。含独立已知状态重算、等概率速率夹具、能量/状态篡改及畸形文件真实CLI拒绝。check未调用积分器。

@@ -30,7 +30,15 @@ fn execute(cli:Cli)->Result<(),String> {
             md::trajectory::run_to_directory(&c,&a.out)?;
             println!("Saved {} frames to {}",c.steps/c.sample_every,a.out.display());
         }
-        Some(Commands::Check{..})=>return Err("Part 4 check not implemented".into()),
+        Some(Commands::Check{directory})=> {
+            let r=md::check::check_directory(&directory)?;
+            let label=|passed:bool|if passed {"PASS"} else {"FAIL"};
+            println!("energy_drift={:.15e} < 2e-3 {}",r.drift,label(r.drift<2e-3));
+            println!("T_speed={:.15e}; abs(T_speed-0.5)={:.15e} < 0.05 {}",r.t_speed,(r.t_speed-0.5).abs(),label((r.t_speed-0.5).abs()<0.05));
+            println!("chi2/22={:.15e} < 2 {} (teaching tolerance, not a significance test)",r.mb_score,label(r.mb_score<2.));
+            if !r.passed { return Err("physical acceptance failed".into()); }
+            println!("PASS");
+        }
         Some(Commands::Video{..})=>return Err("Part 4 video not implemented".into()),
     }
     Ok(())
