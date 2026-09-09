@@ -7,6 +7,8 @@ pub struct RunMetadata {
     pub config: RunConfig,
     #[serde(rename = "box")]
     pub box_size: [f64; 2],
+    #[serde(default)]
+    pub force_method: crate::neighbors::ForceMethod,
 }
 impl std::ops::Deref for RunMetadata {
     type Target = RunConfig;
@@ -104,6 +106,7 @@ pub fn run_to_directory(c: &RunConfig, dir: &Path) -> Result<(), String> {
     let meta = RunMetadata {
         config: c.clone(),
         box_size,
+        force_method: crate::neighbors::ForceMethod::Naive,
     };
     std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let mut meta_file = tempfile::NamedTempFile::new_in(dir).map_err(|e| e.to_string())?;
