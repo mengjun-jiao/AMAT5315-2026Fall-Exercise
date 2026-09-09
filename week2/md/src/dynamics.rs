@@ -6,6 +6,8 @@ pub struct System {
     force_evaluations: usize,
 }
 impl System {
+    pub fn with_model(_p:Vec<[f64;2]>,_v:Vec<[f64;2]>,_model:crate::physics::PhysicalModel)->Result<Self,String> { unimplemented!("Part 4 periodic state") }
+    pub fn rescale_temperature(&mut self,_target:f64)->Result<(),String> { unimplemented!("Part 4 temperature") }
     pub fn new(positions: Vec<[f64; 2]>, velocities: Vec<[f64; 2]>) -> Self {
         assert_eq!(positions.len(), velocities.len(),
                    "positions and velocities must have equal lengths");

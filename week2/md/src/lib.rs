@@ -1,3 +1,4 @@
+pub mod fluid;
 pub mod physics;
 mod dynamics;
 pub use dynamics::{Euler, Integrator, Sample, System, VelocityVerlet, simulate};
