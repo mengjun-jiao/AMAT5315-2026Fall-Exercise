@@ -1,3 +1,4 @@
+pub mod trajectory;
 pub mod fluid;
 pub mod physics;
 mod dynamics;
