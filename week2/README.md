@@ -234,15 +234,24 @@ cargo test --manifest-path md/Cargo.toml --doc
 ## Part 5：优化前测速与 profiling 准备
 
 本阶段只准备现有 naive O(N²) 程序的测量环境，不实现cell list、不加热、不发布网页。
-以下Timing/Profile表等待仓库owner亲自测量，空白不代表0或失败。
+Timing表记录仓库owner在第二个Ubuntu终端亲自完成的实测；Profile表仍待真实采样，空白不代表0或失败。
 
 ### Timing
 
 | Program | Median (s) | Range: min–max (s) |
 | --- | --- | --- |
-| NumPy | | |
-| Rust debug | | |
-| Rust release | | |
+| NumPy | 10.279 | 10.204–10.405 |
+| Rust debug | 7.248 | 7.190–7.314 |
+| Rust release | 1.327 | 1.315–1.330 |
+
+每组3次，计时采用 **Bash shell `time` 的 `real`**，不包含构建时间。原始数据（秒）：
+
+- NumPy：10.279、10.405、10.204；原脚本seed=42。
+- Rust debug：7.190、7.248、7.314；默认seed=2026。
+- Rust release：1.330、1.315、1.327；默认seed=2026。
+
+按中位数计算，release相对debug加速约 **5.46倍**（7.248/1.327），
+本次相对NumPy约 **7.75倍**（10.279/1.327）。尚未进行cell list优化。
 
 ### Profile
 
@@ -301,7 +310,7 @@ python3 -m venv /tmp/amat5315-field-venv
 
 ### 第二个Ubuntu终端：亲自测速
 
-以下整段从本仓库`week2/`执行。每项顺序运行5次，报告墙钟时间的中位数及最小/最大值。
+以下整段从本仓库`week2/`执行。每项顺序运行3次，采用Bash shell `time` 的 `real`，报告中位数及最小/最大值。
 计时包含进程启动、平衡、正式模拟和轨迹写入，不包含编译、check、video或samply。
 各自输出放到`artifacts/part5-timing/`子目录，不覆盖已检查的`artifacts/run.json`和`traj.jsonl`。
 此目录已被Git忽略。测量时不要同时运行其他模拟或profiler。
@@ -324,8 +333,10 @@ measure_md_program() {
         mkdir -p "$WEEK2_DIR/artifacts/part5-timing/$label"
         cd "$WEEK2_DIR/artifacts/part5-timing/$label"
         : > times.txt
-        for repeat in 1 2 3 4 5; do
-            /usr/bin/time -f '%e' -a -o times.txt "$@" > "run-$repeat.log"
+        TIMEFORMAT='%3R'
+        export LC_ALL=C
+        for repeat in 1 2 3; do
+            { time "$@" > "run-$repeat.log" 2> "run-$repeat.err"; } 2>> times.txt
         done
     )
 }
@@ -338,14 +349,14 @@ from statistics import median
 root = Path('artifacts/part5-timing')
 for folder, label in [('numpy', 'NumPy'), ('rust-debug', 'Rust debug'), ('rust-release', 'Rust release')]:
     values = [float(s) for s in (root / folder / 'times.txt').read_text().splitlines()]
-    if len(values) != 5:
-        raise RuntimeError(f'{label}: expected five successful measurements')
-    print(f'{label}: median={median(values):.2f} s; range={min(values):.2f}–{max(values):.2f} s')
+    if len(values) != 3:
+        raise RuntimeError(f'{label}: expected three successful measurements')
+    print(f'{label}: median={median(values):.3f} s; range={min(values):.3f}–{max(values):.3f} s')
 PY
 ```
 
-依赖GNU `/usr/bin/time`（本机已存在；Ubuntu软件包名`time`）。任何一次失败应先检查相应日志，
-不要把不完整测量或失败退出的耗时填入表中。准备阶段没有执行以上测速代码。
+上述命令使用Bash内建`time`，`TIMEFORMAT='%3R'`输出三位小数的real秒数。任何一次失败应先检查相应日志，
+不要把不完整测量或失败退出的耗时填入表中。本表来自用户提供的3次实测，本次编辑没有重新测速。
 
 ### samply命令与当前WSL限制
 
