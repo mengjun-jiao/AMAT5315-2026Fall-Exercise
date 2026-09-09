@@ -1,3 +1,4 @@
+pub mod rdf;
 pub mod check;
 pub mod trajectory;
 pub mod fluid;
