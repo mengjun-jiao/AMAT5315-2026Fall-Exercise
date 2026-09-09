@@ -64,20 +64,26 @@ fn validate_positions(pos: &[[f64; 2]], model: &PhysicalModel) -> Result<(), Str
     Ok(())
 }
 pub fn accelerations(pos: &[[f64; 2]], model: &PhysicalModel) -> Result<Vec<[f64; 2]>, String> {
+    accelerations_with_method(pos, model, crate::neighbors::ForceMethod::Naive)
+}
+pub fn accelerations_with_method(
+    pos: &[[f64; 2]],
+    model: &PhysicalModel,
+    method: crate::neighbors::ForceMethod,
+) -> Result<Vec<[f64; 2]>, String> {
     validate_positions(pos, model)?;
     let mut a = vec![[0.; 2]; pos.len()];
-    for i in 0..pos.len() {
-        for j in i + 1..pos.len() {
-            let d = model.displacement(pos[i], pos[j]);
-            let r = d[0].hypot(d[1]);
-            let (_, f) = model.pair(r)?;
-            for axis in 0..2 {
-                let component = f * d[axis] / r;
-                a[i][axis] += component;
-                a[j][axis] -= component;
-            }
+    crate::neighbors::visit_candidates(pos, model, method, |i, j| {
+        let d = model.displacement(pos[i], pos[j]);
+        let r = d[0].hypot(d[1]);
+        let (_, f) = model.pair(r)?;
+        for axis in 0..2 {
+            let component = f * d[axis] / r;
+            a[i][axis] += component;
+            a[j][axis] -= component;
         }
-    }
+        Ok(())
+    })?;
     if !a.iter().flatten().all(|x| x.is_finite()) {
         return Err("nonfinite acceleration".into());
     }
@@ -88,17 +94,24 @@ pub fn energies(
     vel: &[[f64; 2]],
     model: &PhysicalModel,
 ) -> Result<(f64, f64), String> {
+    energies_with_method(pos, vel, model, crate::neighbors::ForceMethod::Naive)
+}
+pub fn energies_with_method(
+    pos: &[[f64; 2]],
+    vel: &[[f64; 2]],
+    model: &PhysicalModel,
+    method: crate::neighbors::ForceMethod,
+) -> Result<(f64, f64), String> {
     validate_positions(pos, model)?;
     if vel.len() != pos.len() || !vel.iter().flatten().all(|x| x.is_finite()) {
         return Err("matching finite velocities required".into());
     }
     let mut u = 0.;
-    for i in 0..pos.len() {
-        for j in i + 1..pos.len() {
-            let d = model.displacement(pos[i], pos[j]);
-            u += model.pair(d[0].hypot(d[1]))?.0;
-        }
-    }
+    crate::neighbors::visit_candidates(pos, model, method, |i, j| {
+        let d = model.displacement(pos[i], pos[j]);
+        u += model.pair(d[0].hypot(d[1]))?.0;
+        Ok(())
+    })?;
     let k = vel
         .iter()
         .map(|v| 0.5 * (v[0] * v[0] + v[1] * v[1]))
@@ -107,21 +120,4 @@ pub fn energies(
         return Err("nonfinite total energy".into());
     }
     Ok((u, k))
-}
-
-pub fn accelerations_with_method(
-    _pos: &[[f64; 2]],
-    _model: &PhysicalModel,
-    _method: crate::neighbors::ForceMethod,
-) -> Result<Vec<[f64; 2]>, String> {
-    Err("method-aware accelerations not implemented".into())
-}
-
-pub fn energies_with_method(
-    _pos: &[[f64; 2]],
-    _vel: &[[f64; 2]],
-    _model: &PhysicalModel,
-    _method: crate::neighbors::ForceMethod,
-) -> Result<(f64, f64), String> {
-    Err("method-aware energies not implemented".into())
 }

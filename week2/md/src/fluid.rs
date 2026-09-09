@@ -68,6 +68,12 @@ pub fn lattice(n: usize, rho: f64) -> Result<(Vec<[f64; 2]>, [f64; 2]), String> 
     Ok((p, box_size))
 }
 pub fn initialize(c: &RunConfig) -> Result<System, String> {
+    initialize_with_force(c, crate::neighbors::ForceMethod::Naive)
+}
+pub fn initialize_with_force(
+    c: &RunConfig,
+    force_method: crate::neighbors::ForceMethod,
+) -> Result<System, String> {
     use rand::SeedableRng;
     use rand_distr::{Distribution, StandardNormal};
     c.validate()?;
@@ -86,10 +92,11 @@ pub fn initialize(c: &RunConfig) -> Result<System, String> {
             v[axis] -= mean;
         }
     }
-    let mut s = System::with_model(
+    let mut s = System::with_model_and_force(
         pos,
         vel,
         crate::physics::PhysicalModel::PeriodicShiftedLennardJones { box_size, rc: 2.5 },
+        force_method,
     )?;
     s.rescale_temperature(c.temperature)?;
     Ok(s)

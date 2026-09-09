@@ -3,6 +3,7 @@ pub struct System {
     positions: Vec<[f64; 2]>,
     velocities: Vec<[f64; 2]>,
     accelerations: Vec<[f64; 2]>,
+    force_method: crate::neighbors::ForceMethod,
     #[cfg(test)]
     force_evaluations: usize,
 }
@@ -12,13 +13,22 @@ impl System {
         v: Vec<[f64; 2]>,
         model: crate::physics::PhysicalModel,
     ) -> Result<Self, String> {
-        crate::physics::energies(&p, &v, &model)?;
-        let a = crate::physics::accelerations(&p, &model)?;
+        Self::with_model_and_force(p, v, model, crate::neighbors::ForceMethod::Naive)
+    }
+    pub fn with_model_and_force(
+        p: Vec<[f64; 2]>,
+        v: Vec<[f64; 2]>,
+        model: crate::physics::PhysicalModel,
+        force_method: crate::neighbors::ForceMethod,
+    ) -> Result<Self, String> {
+        crate::physics::energies_with_method(&p, &v, &model, force_method)?;
+        let a = crate::physics::accelerations_with_method(&p, &model, force_method)?;
         Ok(Self {
             positions: p,
             velocities: v,
             accelerations: a,
             model,
+            force_method,
             #[cfg(test)]
             force_evaluations: 1,
         })
@@ -62,6 +72,7 @@ impl System {
             velocities,
             accelerations,
             model: crate::physics::PhysicalModel::OpenLennardJones,
+            force_method: crate::neighbors::ForceMethod::Naive,
             #[cfg(test)]
             force_evaluations: 0,
         };
@@ -77,12 +88,19 @@ impl System {
     pub fn accelerations(&self) -> &[[f64; 2]] {
         &self.accelerations
     }
+    pub fn force_method(&self) -> crate::neighbors::ForceMethod {
+        self.force_method
+    }
     fn refresh_accelerations(&mut self) {
         #[cfg(test)]
         {
             self.force_evaluations += 1;
         }
-        self.accelerations = crate::physics::accelerations(&self.positions, &self.model)
+        self.accelerations = crate::physics::accelerations_with_method(
+            &self.positions,
+            &self.model,
+            self.force_method,
+        )
             .unwrap_or_else(|e| panic!("{e}"));
     }
     pub fn kinetic_energy(&self) -> f64 {
@@ -92,7 +110,12 @@ impl System {
             .sum()
     }
     pub fn potential_energy(&self) -> f64 {
-        crate::physics::energies(&self.positions, &self.velocities, &self.model)
+        crate::physics::energies_with_method(
+            &self.positions,
+            &self.velocities,
+            &self.model,
+            self.force_method,
+        )
             .unwrap_or_else(|e| panic!("{e}"))
             .0
     }
