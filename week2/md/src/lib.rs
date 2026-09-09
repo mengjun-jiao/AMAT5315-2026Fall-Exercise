@@ -1,3 +1,6 @@
+mod dynamics;
+pub use dynamics::{Euler, Integrator, Sample, System, VelocityVerlet, simulate};
+
 pub fn greeting() -> &'static str {
     "Hello, world!"
 }
