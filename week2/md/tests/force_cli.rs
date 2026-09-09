@@ -58,3 +58,20 @@ fn metadata_without_force_method_reads_as_naive() {
     let (meta, _) = md::trajectory::read_trajectory(tmp.path()).unwrap();
     assert_eq!(meta.force_method, md::neighbors::ForceMethod::Naive);
 }
+
+#[test]
+fn metadata_with_unknown_force_method_is_rejected() {
+    let tmp = tempfile::tempdir().unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_md"))
+        .args(["run", "--eq-steps", "0", "--steps", "1", "--sample-every", "1", "--out"])
+        .arg(tmp.path())
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    let mut json: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(tmp.path().join("run.json")).unwrap())
+            .unwrap();
+    json["force_method"] = serde_json::Value::String("bogus".into());
+    std::fs::write(tmp.path().join("run.json"), serde_json::to_vec(&json).unwrap()).unwrap();
+    assert!(md::trajectory::read_trajectory(tmp.path()).is_err());
+}

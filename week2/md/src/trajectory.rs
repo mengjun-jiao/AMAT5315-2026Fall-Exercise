@@ -99,14 +99,21 @@ pub(crate) fn close(actual: f64, expected: f64) -> bool {
         && (actual - expected).abs() <= 1e-10 * expected.abs().max(1.)
 }
 pub fn run_to_directory(c: &RunConfig, dir: &Path) -> Result<(), String> {
+    run_to_directory_with_force(c, dir, crate::neighbors::ForceMethod::Naive)
+}
+pub fn run_to_directory_with_force(
+    c: &RunConfig,
+    dir: &Path,
+    force_method: crate::neighbors::ForceMethod,
+) -> Result<(), String> {
     use std::io::{BufWriter, Write};
     c.validate()?;
-    let mut s = crate::fluid::initialize(c)?;
+    let mut s = crate::fluid::initialize_with_force(c, force_method)?;
     let (_, box_size) = crate::fluid::lattice(c.n, c.rho)?;
     let meta = RunMetadata {
         config: c.clone(),
         box_size,
-        force_method: crate::neighbors::ForceMethod::Naive,
+        force_method,
     };
     std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let mut meta_file = tempfile::NamedTempFile::new_in(dir).map_err(|e| e.to_string())?;

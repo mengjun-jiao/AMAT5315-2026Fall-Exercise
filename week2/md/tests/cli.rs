@@ -35,7 +35,7 @@ fn run_binary_writes_exact_frames_and_required_fields() {
     let json: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(tmp.path().join("run.json")).unwrap())
             .unwrap();
-    assert_eq!(json.as_object().unwrap().len(), 10);
+    assert_eq!(json.as_object().unwrap().len(), 11);
     assert!(json["box"].is_array());
 }
 #[test]

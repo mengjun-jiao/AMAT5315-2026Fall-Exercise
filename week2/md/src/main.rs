@@ -40,6 +40,8 @@ struct RunArgs {
     integrator: String,
     #[arg(long, default_value = "artifacts")]
     out: PathBuf,
+    #[arg(long, value_enum, default_value_t = md::neighbors::ForceMethod::Cells)]
+    force: md::neighbors::ForceMethod,
 }
 fn execute(cli: Cli) -> Result<(), String> {
     match cli.command {
@@ -56,7 +58,7 @@ fn execute(cli: Cli) -> Result<(), String> {
                 seed: a.seed,
                 integrator: a.integrator,
             };
-            md::trajectory::run_to_directory(&c, &a.out)?;
+            md::trajectory::run_to_directory_with_force(&c, &a.out, a.force)?;
             println!(
                 "Saved {} frames to {}",
                 c.steps / c.sample_every,
