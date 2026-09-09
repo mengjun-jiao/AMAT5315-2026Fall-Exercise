@@ -6,8 +6,9 @@ pub fn energy(r: f64) -> f64 {
     4.0 * (r.powi(-12) - r.powi(-6))
 }
 
-pub fn force(_r: f64) -> f64 {
-    todo!()
+/// Returns the radial force: positive is repulsive, negative is attractive.
+pub fn force(r: f64) -> f64 {
+    24.0 / r * (2.0 * r.powi(-12) - r.powi(-6))
 }
 
 #[cfg(test)]
