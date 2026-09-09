@@ -2,8 +2,8 @@ pub fn greeting() -> &'static str {
     "Hello, world!"
 }
 
-pub fn energy(_r: f64) -> f64 {
-    todo!()
+pub fn energy(r: f64) -> f64 {
+    4.0 * (r.powi(-12) - r.powi(-6))
 }
 
 pub fn force(_r: f64) -> f64 {
