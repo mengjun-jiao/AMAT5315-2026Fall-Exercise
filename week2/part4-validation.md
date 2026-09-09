@@ -34,3 +34,67 @@ Task6 green: 7ddc24c。Red: `cargo test --release --manifest-path week2/md/Cargo
 默认seed=2026：200帧；drift=2.389356121140325e-4；T_speed=4.933536579154182e-1；abs(T_speed-0.5)=6.646342084581758e-3；chi2/22=9.240727272727269e-1。
 Green: red SHA 26a138e；release acceptance测试退出0，2 passed。Makefile为真实Tab，默认run与make真实集成通过。
 亲自在week2执行：`make reproduce`、`./md/target/release/md check artifacts`、`PATH=/tmp/amat5315-ffmpeg:$PATH MD_PYTHON=/tmp/amat5315-field-venv/bin/python ./md/target/release/md video artifacts --out fluid.mp4`，三者退出0。默认轨迹200帧；三个指标与首次测试相同；完整fluid.mp4真实编码200帧、929356字节。
+
+## 最终回归、审查和交付
+
+- 使用requesting-code-review的审查清单在当前会话检查模型、积分、轨迹、check、RDF、视频和版本控制；按用户要求未启动子代理。
+- 补充周期Verlet缓存测试，现有行为直接通过，未人为制造red；初始化1次、5步总6次刷新。旧12个dynamics集成测试、两个旧examples和field.png/dimer.png未修改；旧lib物理/greeting测试保留。
+- 安装rustfmt后格式整理本次Rust文件，不改变物理计算顺序；最终Rust共38 passed、0 failed、0 ignored。包含真实默认100原子运行、真实Makefile入口、CLI篡改拒绝和真实视频编码测试。
+- `cargo test --manifest-path week2/md/Cargo.toml --doc`退出0（0个文档测试）；旧Python测试1 passed，退出0；`git diff --check`通过。
+- 最终视频ffprobe：960×480、200帧、10.000000秒、929356字节，满足严格小于2,000,000字节。
+- 实际抽查第1、20、21、200帧；对应正式时间0.5、10、10.5、100，窗口标注1/20、20/20、20/20、20/20；左右图可读。RDF滑动窗口的移除行为由数值测试验证。
+- Makefile recipe首字节为真实Tab（0x09）。Git忽略artifacts/和target/，只额外忽略week2下临时`.tmp*.mp4`；fluid.mp4、cold.mp4、hot.mp4均不被忽略。最终fluid.mp4提交。
+- 课程viewer由用户随后手动加载检查，**尚未检查，未声称通过**。没有运行Part 5，没有push。
+
+### 最终测试命令（仓库根目录）
+
+```bash
+PATH=/tmp/amat5315-ffmpeg:$PATH MD_PYTHON=/tmp/amat5315-field-venv/bin/python MPLCONFIGDIR=/tmp/amat5315-matplotlib cargo test --release --manifest-path week2/md/Cargo.toml --all-targets
+cargo test --manifest-path week2/md/Cargo.toml --doc
+/tmp/amat5315-field-venv/bin/python -m pytest week1/
+git diff --check
+```
+
+### 亲自执行的复现命令（week2/目录）
+
+```bash
+make reproduce
+./md/target/release/md check artifacts
+PATH=/tmp/amat5315-ffmpeg:$PATH MD_PYTHON=/tmp/amat5315-field-venv/bin/python ./md/target/release/md video artifacts --out fluid.mp4
+```
+
+三者退出0。README包含MD_PYTHON含义、Python环境重建和ffmpeg安装/静态包重建方式。
+实测工具：rustc 1.98.1，Python 3.14.4，NumPy 2.5.3，Matplotlib 3.11.1，pytest 9.1.1，ffmpeg/ffprobe 7.0.2-static。
+
+### 默认数据
+
+固定n=100,rho=0.8,temperature=0.5,dt=0.01,eq_steps=2000,steps=10000,sample_every=50,seed=2026,velocity-verlet；无修改参数或阈值。
+
+| 指标 | 实测值 | 要求 |
+| --- | --- | --- |
+| 轨迹帧数 | 200（step=50..10000） | 200 |
+| 能量漂移 | 2.389356121140325e-4 | <2e-3 |
+| T_speed | 0.4933536579154182 | 与0.5之差<0.05 |
+| abs(T_speed-0.5) | 0.006646342084581758 | <0.05 |
+| chi2/22 | 0.9240727272727269 | <2 |
+| 视频帧数 | 200 | 每保存帧一帧 |
+| 视频字节数 | 929356 | <2,000,000 |
+
+viewer输入文件保留在本地，不纳入Git：
+
+- `/home/mengjun/AMAT5315-2026Fall-Exercise/week2/artifacts/run.json`
+- `/home/mengjun/AMAT5315-2026Fall-Exercise/week2/artifacts/traj.jsonl`
+
+### Red/green提交证据
+
+| 批次 | Red | Green |
+| --- | --- | --- |
+| 物理模型 | 1d5629d | bbaea0e |
+| 周期状态与初态 | 0d3afbf | 4384907 |
+| run与轨迹 | 8b88a25 | 556d099 |
+| 独立check | a2bf12d | 27782d3 |
+| 滑动RDF | 92c4024 | 0d75e31 |
+| 视频 | 91db1ba | 7ddc24c |
+| Makefile与默认验收 | 26a138e | 19ec345 |
+
+其中最后批次在red时物理验收已通过，失败仅为尚缺Makefile。其余red均为新增真实行为失败。

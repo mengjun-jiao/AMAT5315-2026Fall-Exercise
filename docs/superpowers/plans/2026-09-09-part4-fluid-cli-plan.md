@@ -1,6 +1,6 @@
 # Part 4 Fluid CLI Implementation Plan
 
-> **状态：用户已批准执行。** 用户指定当前会话直接执行后续获批流程；此指令覆盖技能模板中的子代理/执行技能要求。执行时使用已安装的 test-driven-development，不安装或声称使用 subagent-driven-development、executing-plans、using-git-worktrees，不启动子代理。
+> **状态：已在当前会话完成，实测记录见 week2/part4-validation.md。** 用户指定当前会话直接执行后续获批流程；此指令覆盖技能模板中的子代理/执行技能要求。执行时使用已安装的 test-driven-development，不安装或声称使用 subagent-driven-development、executing-plans、using-git-worktrees，不启动子代理。
 
 **Goal:** 在现有crate中建立run、独立check和滑动窗口RDF视频，保留Part 1–3及真实red/green证据。
 
@@ -439,4 +439,4 @@ ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_
 覆盖映射：模型/边界/rc连续性→Task1–2；初始化/阶段/文件/CLI→Task2–3；重算及三项指标→Task4/7；20帧滑动RDF→Task5；视频依赖/编码→Task6/8；Makefile独立run→Task7；旧测试和提交证据→每批及Task8。
 接口统一使用PhysicalModel、RunConfig、RunMetadata、Frame、RdfSample、CheckReport；serde字段名按文件契约映射。
 已核对五项用户修订、命令位置参数、RDF的N/A归一化、窗口移除、400/1600只构造及不push边界。
-用户已批准执行；真实执行证据见week2/part4-validation.md。
+Tasks 1–8已完成；最终视频按用户后续要求纳入Git。真实执行证据见week2/part4-validation.md。
