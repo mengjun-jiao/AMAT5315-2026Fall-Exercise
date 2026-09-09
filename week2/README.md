@@ -381,30 +381,94 @@ You can execute the following command and then try again:
     echo '1' | sudo tee /proc/sys/kernel/perf_event_paranoid
 ```
 
-环境为WSL2内核`6.18.33.2-microsoft-standard-WSL2`。目前确认的是perf事件权限阻塞，
-不能据此断言WSL内核不支持采样。没有自动修改系统sysctl，也没有填写估计的profiling数值。
-若你决定允许本机用户采样，可在第二个Ubuntu终端执行samply提示的临时权限命令后重试：
+本次只读复查：发行版Ubuntu，WSL2内核`6.18.33.2-microsoft-standard-WSL2`，
+`perf_event_paranoid=2`、`kptr_restrict=1`；安装的md仍与本项目release二进制一致，调试符号存在。
+目前确认的是perf事件权限阻塞，不能据此断言WSL内核不支持采样。
+针对samply 0.13.1已报告的限制，先把`perf_event_paranoid`临时从2调到1；
+保持`kptr_restrict`不变，不添加capability，不写`/etc/sysctl.conf`或`/etc/sysctl.d/`。
+此设置会改变当前系统运行时权限，采样结束立即恢复。
+参见[samply的Linux权限说明](https://github.com/mstange/samply#description)。
+
+以下命令由用户在第二个Ubuntu终端从week2执行；sudo由用户亲自输入，没有由助手执行。
 
 ```bash
-echo '1' | sudo tee /proc/sys/kernel/perf_event_paranoid
+cd /home/mengjun/AMAT5315-2026Fall-Exercise/week2
+export PATH="$HOME/.cargo/bin:$PATH"
+hash -r
+command -v md
+cmp "$(command -v md)" md/target/release/md
+MD_PERF_PARANOID_BEFORE="$(cat /proc/sys/kernel/perf_event_paranoid)"
+printf 'Original perf_event_paranoid=%s\n' "$MD_PERF_PARANOID_BEFORE"
+sudo sysctl -w kernel.perf_event_paranoid=1
+cat /proc/sys/kernel/perf_event_paranoid
 ```
 
-从week2采集naive release版本（此命令留给你执行）：
+确认输出1后，使用学习单指定负载，不使用前面100原子的Timing负载：
 
 ```bash
 mkdir -p artifacts/part5-profile
-samply record --save-only -o artifacts/part5-profile/naive.json.gz -- md run --out artifacts/part5-profile/naive-run
+if samply record --save-only -o artifacts/part5-profile/naive.json.gz -- md run --n 400 --eq-steps 200 --steps 1000 --out /tmp/md-prof > artifacts/part5-profile/naive.stdout.log 2> artifacts/part5-profile/naive.stderr.log; then
+    printf 'Sampling succeeded\n'
+else
+    MD_PROFILE_STATUS=$?
+    printf 'Sampling failed: exit %s\n' "$MD_PROFILE_STATUS"
+    cat artifacts/part5-profile/naive.stderr.log
+fi
 ```
 
-成功后加载查看，使用回环地址提供本机profile，不发布网页：
+剩余Rust默认参数保持不变，包括seed=2026、rho=0.8、temperature=0.5、dt=0.01、
+sample_every=50及velocity-verlet。模拟输出为`/tmp/md-prof/`，profile/log在被Git忽略的
+`artifacts/part5-profile/`。不要以sudo运行md或samply。
+
+无论采样成功或失败，在同一终端恢复刚保存的原值；读取已有profile不需要放宽权限：
+
+```bash
+sudo sysctl -w "kernel.perf_event_paranoid=$MD_PERF_PARANOID_BEFORE"
+cat /proc/sys/kernel/perf_event_paranoid
+```
+
+本次查到的原值是2。若终端关闭导致变量丢失，明确恢复命令为：
+
+```bash
+sudo sysctl -w kernel.perf_event_paranoid=2
+```
+
+若调整后仍失败，保留上述stderr和退出码再诊断，不能继续填写估计值，也不要自动进一步降低权限。
+权限放宽后的WSL实际采样能力尚未验证。
+
+### 打开真实采样结果并保存profile-naive.png
+
+仅在这一次采样成功后执行，避免把以前残留的profile当成本次结果：
 
 ```bash
 samply load --no-open --address 127.0.0.1 artifacts/part5-profile/naive.json.gz
 ```
 
-按终端显示的URL在浏览器打开；profile查看完成后Ctrl-C停止本地服务。
-`--save-only`使采集阶段不自动打开浏览器或启动服务。
-若权限调整后仍报错，请保留完整stderr和退出码；Profile表继续留空，不能用猜测代替采样。
+该命令保持运行；复制终端显示的完整profiler URL到Windows浏览器，按实际URL打开，
+不要自行猜测端口或省略URL中的参数。本机回环服务用于查看符号，不点击发布/上传。
+
+1. 选择`md`进程的主线程和完整记录区间；切到 **Call Tree**，展开调用层次，
+   找到`md::physics::accelerations`及子调用。保留完整时间轴及未过滤的总计百分比。
+   不要将搜索后缩小的分母误当成整个运行的Force share。
+2. 截图中应能看见函数名、inclusive百分比和时间范围；如符号仍显示地址，先确认加载的是
+   本次含调试信息的release二进制，不填写猜测值。
+3. 在Windows按 **Win+Shift+S** 截取浏览器中的这些区域；点截图通知打开截图工具，
+   **Ctrl+S**另存为PNG，文件名`profile-naive.png`，完整保存路径为：
+
+   ```text
+   \\wsl.localhost\Ubuntu\home\mengjun\AMAT5315-2026Fall-Exercise\week2\profile-naive.png
+   ```
+
+   也可在Ubuntu另一个终端用`wslpath -w "$PWD/profile-naive.png"`取得Windows路径
+   （该终端须位于week2）。这是实际截图，不是把profile JSON改名为PNG。
+   操作参见[Windows截图工具说明](https://support.microsoft.com/en-us/windows/apps/use-snipping-tool-to-capture-screenshots)。
+4. 回到Ubuntu确认文件，再用Ctrl-C停止`samply load`：
+
+   ```bash
+   file profile-naive.png
+   ```
+
+目前未产生或声称已保存这张截图；Profile表继续留空，等取得真实profile及读数后再填写。
 
 Force share记录所选md主线程完整运行区间中，`md::physics::accelerations`及其子调用的
 inclusive样本占比；不要把父/子行百分比相加重复计数。Elapsed time记录profiler中同一
