@@ -234,7 +234,7 @@ cargo test --manifest-path md/Cargo.toml --doc
 ## Part 5：优化前测速与 profiling 准备
 
 本阶段只准备现有 naive O(N²) 程序的测量环境，不实现cell list、不加热、不发布网页。
-Timing表记录仓库owner在第二个Ubuntu终端亲自完成的实测；Profile表仍待真实采样，空白不代表0或失败。
+Timing表记录仓库owner在第二个Ubuntu终端亲自完成的实测；Naive的Profile结果已由用户查看真实采样并提供截图；Cell list行仍为空，空白不代表0或失败。
 
 ### Timing
 
@@ -257,8 +257,17 @@ Timing表记录仓库owner在第二个Ubuntu终端亲自完成的实测；Profil
 
 | Version | Force share (%) | Elapsed time (s) |
 | --- | --- | --- |
-| Naive | | |
+| Naive | 98 | 约 2.2 |
 | Cell list | | |
+
+Naive采样负载保持 `md run --n 400 --eq-steps 200 --steps 1000 --out /tmp/md-prof`，
+其余默认参数不变。用户已在浏览器查看完整记录区间，界面显示约2.2 s；
+按显示精度记录，不由样本数推算更多时间小数。
+`md::physics::accelerations` 的inclusive总计为98%，对应2076个样本，
+主线程总样本2117。`hypotf64`的46%是内部子函数占比，不作为总力占比，也不与98%相加。
+截图文件已检查存在并打开核对，见下图。Cell list尚未实现或采样。
+
+![Naive完整区间profiling：约2.2秒，accelerations inclusive 98%](profile-naive.png)
 
 ### 已完成的环境准备
 
@@ -434,7 +443,7 @@ sudo sysctl -w kernel.perf_event_paranoid=2
 ```
 
 若调整后仍失败，保留上述stderr和退出码再诊断，不能继续填写估计值，也不要自动进一步降低权限。
-权限放宽后的WSL实际采样能力尚未验证。
+以上是此前权限受限时的操作记录；用户现已成功完成真实采样并在浏览器查看结果。
 
 ### 打开真实采样结果并保存profile-naive.png
 
@@ -468,7 +477,7 @@ samply load --no-open --address 127.0.0.1 artifacts/part5-profile/naive.json.gz
    file profile-naive.png
    ```
 
-目前未产生或声称已保存这张截图；Profile表继续留空，等取得真实profile及读数后再填写。
+用户已保存`profile-naive.png`，本次已确认图片存在并核对图中读数；Naive行已填写，Cell list行继续留空。
 
 Force share记录所选md主线程完整运行区间中，`md::physics::accelerations`及其子调用的
 inclusive样本占比；不要把父/子行百分比相加重复计数。Elapsed time记录profiler中同一
