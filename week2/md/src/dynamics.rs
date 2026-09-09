@@ -1,4 +1,5 @@
 pub struct System {
+    model: crate::physics::PhysicalModel,
     positions: Vec<[f64; 2]>,
     velocities: Vec<[f64; 2]>,
     accelerations: Vec<[f64; 2]>,
@@ -6,8 +7,24 @@ pub struct System {
     force_evaluations: usize,
 }
 impl System {
-    pub fn with_model(_p:Vec<[f64;2]>,_v:Vec<[f64;2]>,_model:crate::physics::PhysicalModel)->Result<Self,String> { unimplemented!("Part 4 periodic state") }
-    pub fn rescale_temperature(&mut self,_target:f64)->Result<(),String> { unimplemented!("Part 4 temperature") }
+    pub fn with_model(p:Vec<[f64;2]>,v:Vec<[f64;2]>,model:crate::physics::PhysicalModel)->Result<Self,String> {
+        crate::physics::energies(&p,&v,&model)?;
+        let a=crate::physics::accelerations(&p,&model)?;
+        Ok(Self { positions:p,velocities:v,accelerations:a,model,
+            #[cfg(test)] force_evaluations:1 })
+    }
+    pub fn rescale_temperature(&mut self,target:f64)->Result<(),String> {
+        let thermo=2.0*self.kinetic_energy()/(2*self.positions.len()-2) as f64;
+        if !target.is_finite() || target<=0.0 || !thermo.is_finite() || thermo<=0.0 {
+            return Err("positive finite target and kinetic temperature required".into());
+        }
+        let factor=(target/thermo).sqrt();
+        for v in &mut self.velocities { for x in v { *x*=factor; } }
+        Ok(())
+    }
+    fn wrap_positions(&mut self) {
+        for p in &mut self.positions { *p=self.model.wrap(*p); }
+    }
     pub fn new(positions: Vec<[f64; 2]>, velocities: Vec<[f64; 2]>) -> Self {
         assert_eq!(positions.len(), velocities.len(),
                    "positions and velocities must have equal lengths");
@@ -15,7 +32,7 @@ impl System {
         assert!(positions.iter().chain(&velocities).flatten().all(|v| v.is_finite()),
                 "finite state");
         let accelerations = vec![[0.0; 2]; positions.len()];
-        let mut s = Self { positions, velocities, accelerations,
+        let mut s = Self { positions, velocities, accelerations, model:crate::physics::PhysicalModel::OpenLennardJones,
                           #[cfg(test)] force_evaluations: 0 };
         s.refresh_accelerations();
         s
@@ -25,36 +42,15 @@ impl System {
     pub fn accelerations(&self) -> &[[f64; 2]] { &self.accelerations }
     fn refresh_accelerations(&mut self) {
         #[cfg(test)] { self.force_evaluations += 1; }
-        self.accelerations.fill([0.0; 2]);
-        for i in 0..self.positions.len() {
-            for j in i+1..self.positions.len() {
-                let dx = self.positions[i][0] - self.positions[j][0];
-                let dy = self.positions[i][1] - self.positions[j][1];
-                let r = dx.hypot(dy);
-                assert!(r > 0.0 && r.is_finite(), "nonzero finite separation");
-                let radial = crate::force(r);
-                for (axis, d) in [dx, dy].into_iter().enumerate() {
-                    let f = radial * d / r;
-                    assert!(f.is_finite(), "finite force");
-                    self.accelerations[i][axis] += f;
-                    self.accelerations[j][axis] -= f;
-                }
-            }
-        }
+        self.accelerations=crate::physics::accelerations(&self.positions,&self.model)
+            .unwrap_or_else(|e|panic!("{e}"));
     }
     pub fn kinetic_energy(&self) -> f64 {
         self.velocities.iter().map(|v| 0.5*(v[0]*v[0] + v[1]*v[1])).sum()
     }
     pub fn potential_energy(&self) -> f64 {
-        let mut u = 0.0;
-        for i in 0..self.positions.len() {
-            for j in i+1..self.positions.len() {
-                let dx = self.positions[i][0] - self.positions[j][0];
-                let dy = self.positions[i][1] - self.positions[j][1];
-                u += crate::energy(dx.hypot(dy));
-            }
-        }
-        u
+        crate::physics::energies(&self.positions,&self.velocities,&self.model)
+            .unwrap_or_else(|e|panic!("{e}")).0
     }
     pub fn total_energy(&self) -> f64 { self.kinetic_energy() + self.potential_energy() }
 }
@@ -71,6 +67,7 @@ impl Integrator for Euler {
             }
         }
         system.refresh_accelerations();
+        system.wrap_positions();
     }
 }
 impl Integrator for VelocityVerlet {
@@ -88,6 +85,7 @@ impl Integrator for VelocityVerlet {
                 system.velocities[i][axis] += 0.5*system.accelerations[i][axis]*dt;
             }
         }
+        system.wrap_positions();
     }
 }
 pub struct Sample {
