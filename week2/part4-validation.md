@@ -23,3 +23,7 @@ Green: red SHA a2bf12d；all-targets退出0，31 passed。含独立已知状态�
 ## Task 5
 Task4 green: 27782d3。Red: `cargo test --manifest-path week2/md/Cargo.toml --test rdf`退出101，3测试实际运行于未实现RDF失败。
 Green: red SHA 92c4024；`cargo test --manifest-path week2/md/Cargo.toml --test rdf`退出0，3 passed。覆盖N/A归一化、rc外计数、周期距离、r_max端点、第21帧移除第1帧；未额外缩放尾部。
+
+## Task 6
+Task5 green: 0d75e31。系统sudo安装无法非交互认证；独立ffmpeg/ffprobe 7.0.2已下载到/tmp/amat5315-ffmpeg，确认libx264；Python NumPy/Matplotlib导入成功。没有静默跳过视频测试。
+Red: `PATH=/tmp/amat5315-ffmpeg:$PATH MD_PYTHON=/tmp/amat5315-field-venv/bin/python MPLCONFIGDIR=/tmp/amat5315-matplotlib cargo test --manifest-path week2/md/Cargo.toml --test video`退出101，真实CLI报告video未实现。
