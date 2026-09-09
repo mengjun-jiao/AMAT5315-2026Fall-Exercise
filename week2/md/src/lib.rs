@@ -4,6 +4,7 @@ pub mod check;
 pub mod trajectory;
 pub mod fluid;
 pub mod physics;
+pub mod neighbors;
 mod dynamics;
 pub use dynamics::{Euler, Integrator, Sample, System, VelocityVerlet, simulate};
 
