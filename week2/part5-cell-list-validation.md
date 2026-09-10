@@ -1,6 +1,7 @@
 # Part 5 cell list validation
 
-本记录覆盖已实现的邻居搜索优化；本轮没有加热、网页发布、profiling 或规模测速。
+本记录覆盖已实现的邻居搜索优化；实现验收阶段没有加热或网页发布。后续 profiling
+与规模测速记录在 README 及 `scaling-results.csv` 中。
 
 ## Red/green 提交
 

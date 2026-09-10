@@ -247,14 +247,13 @@ viewer 手动加载，独立保存于 `week2/artifacts/cells-viewer/run.json` �
 `week2/artifacts/cells-viewer/traj.jsonl`，不会覆盖 Part 4 轨迹；新增字段与 viewer
 源码的 JSON 读取方式兼容，浏览器手动加载仍待课程 owner 检查。
 
-本轮没有执行 Part 5 profiling 或规模测速。后续 profiling 负载固定为
-`--n 400 --eq-steps 200 --steps 1000`；规模测速另用 N=100、400、1600、
-`--eq-steps 100 --steps 500`，两组实验不混用。
+本轮 profiling 使用固定负载 `--n 400 --eq-steps 200 --steps 1000`；规模测速使用
+N=100、400、1600、`--eq-steps 100 --steps 500`，两组实验不混用。
 
 ## Part 5：优化前测速与 profiling 准备
 
-本阶段只准备现有 naive O(N²) 程序的测量环境，不实现cell list、不加热、不发布网页。
-Timing表记录仓库owner在第二个Ubuntu终端亲自完成的实测；Naive的Profile结果已由用户查看真实采样并提供截图；Cell list行仍为空，空白不代表0或失败。
+本阶段记录 naive 与 cell list 的测量结果，不加热、不发布网页。Timing表记录仓库owner
+在第二个Ubuntu终端亲自完成的实测；Profile结果来自用户查看的真实采样。
 
 ### Timing
 
@@ -278,16 +277,46 @@ Timing表记录仓库owner在第二个Ubuntu终端亲自完成的实测；Naive�
 | Version | Force share (%) | Elapsed time (s) |
 | --- | --- | --- |
 | Naive | 98 | 约 2.2 |
-| Cell list | | |
+| Naive (same build) | 98 | 约 1.9 |
+| Cell list (same build) | 97 | 约 0.364 |
 
-Naive采样负载保持 `md run --n 400 --eq-steps 200 --steps 1000 --out /tmp/md-prof`，
-其余默认参数不变。用户已在浏览器查看完整记录区间，界面显示约2.2 s；
+原始Naive采样负载为 `md run --n 400 --eq-steps 200 --steps 1000 --out /tmp/md-prof`，
+用户已在浏览器查看完整记录区间，界面显示约2.2 s；
 按显示精度记录，不由样本数推算更多时间小数。
 `md::physics::accelerations` 的inclusive总计为98%，对应2076个样本，
 主线程总样本2117。`hypotf64`的46%是内部子函数占比，不作为总力占比，也不与98%相加。
-截图文件已检查存在并打开核对，见下图。Cell list尚未实现或采样。
+原始截图为 `profile-naive.png`。同一新版构建、相同负载的补充采样中，
+`accelerations_with_method` 在 naive 中为98%（1888/1925样本），完整范围约1.9 s；
+cells 中为97%（349/357样本），完整范围约0.364 s。两者约5.2倍加速是 profiling
+观察值，不是重复 benchmark 结果。
 
 ![Naive完整区间profiling：约2.2秒，accelerations inclusive 98%](profile-naive.png)
+
+![Naive同构建 profiling：约1.9秒，accelerations_with_method inclusive 98%](profile-naive-current.png)
+
+![Cells profiling：约0.364秒，accelerations_with_method inclusive 97%](profile-cells.png)
+
+### Benchmark
+
+每个 N 和 force method 串行运行3次，使用同一个已安装 release 二进制；命令为
+`--eq-steps 100 --steps 500`，总计600个积分步。计时是 shell `time` 的 wall-clock
+real，不包含构建时间。表中耗时为中位数（min–max），主加速比为 naive 中位数除以
+cells 中位数；若给出范围，它只是三次重复结果的范围，不是置信区间。
+
+| N | naive (s) | cells (s) | speedup |
+|---:|---:|---:|---:|
+| 100 | 0.062 (0.061–0.063) | 0.045 (0.044–0.047) | 1.38× |
+| 400 | 0.947 (0.946–0.950) | 0.174 (0.171–0.174) | 5.44× |
+| 1600 | 14.822 (14.761–15.231) | 0.750 (0.749–0.753) | 19.76× |
+
+原始18次记录（包含命令、退出状态和二进制哈希）见 [`scaling-results.csv`](scaling-results.csv)。
+从 `week2/` 可用 `./benchmark_scaling.sh` 重跑并生成该文件，再用
+`MPLCONFIGDIR=/tmp/amat5315-matplotlib python3 plot_scaling.py` 生成图；轨迹写入 `/tmp` 后立即删除。固定密度和截断下，
+全配对搜索工作量约随 N² 增长，cell list 约随 N 增长。
+
+`scaling.png` 的纵轴是总耗时除以600个积分步，包含初始化和输出开销；使用双对数坐标，
+两条线分别标注 naive 与 cells。
+加速比随 N 增长，N=1600 时为 19.76×，超过2；这只是本次三次重复的中位数比值。
 
 ### 已完成的环境准备
 
