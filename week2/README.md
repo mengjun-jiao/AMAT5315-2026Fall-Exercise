@@ -44,17 +44,19 @@ Python 需要可用的 `venv` 和 `pip`（Ubuntu 可安装 `python3-venv`、`pyt
 在 `week2/` 目录执行以下命令，依赖安装到 `/tmp` 下的独立环境：
 
 ```bash
-python3 -m venv /tmp/amat5315-field-venv
-/tmp/amat5315-field-venv/bin/python -m pip install numpy matplotlib pytest
-/tmp/amat5315-field-venv/bin/python plot_field.py
+mkdir -p "$HOME/.venvs"
+python3 -m venv $HOME/.venvs/amat5315
+$HOME/.venvs/amat5315/bin/python -m pip install numpy matplotlib pytest
+$HOME/.venvs/amat5315/bin/python plot_field.py
 ```
 
 如果系统有 pip，但缺少 ensurepip，可用以下等价方式建立环境和安装依赖：
 
 ```bash
-python3 -m venv --without-pip /tmp/amat5315-field-venv
-python3 -m pip --python /tmp/amat5315-field-venv/bin/python install numpy matplotlib pytest
-/tmp/amat5315-field-venv/bin/python plot_field.py
+mkdir -p "$HOME/.venvs"
+python3 -m venv --without-pip $HOME/.venvs/amat5315
+python3 -m pip --python $HOME/.venvs/amat5315/bin/python install numpy matplotlib pytest
+$HOME/.venvs/amat5315/bin/python plot_field.py
 ```
 
 图片保存为本目录的 `field.png`。使用无界面的 Agg 后端，不需要图形桌面。
@@ -67,7 +69,7 @@ Rust 构建文件位于已被 Git 忽略的 `md/target/`。
 ```bash
 cargo test --manifest-path md/Cargo.toml --all-targets
 cargo test --manifest-path md/Cargo.toml --doc
-/tmp/amat5315-field-venv/bin/python -m pytest ../week1/
+$HOME/.venvs/amat5315/bin/python -m pytest ../week1/
 ```
 
 ![二维势能与力场](field.png)
@@ -93,13 +95,13 @@ Rust example `md/examples/two_atoms.rs` 计算 `E0=energy(1.2)`，并导出
 ```bash
 cargo test --manifest-path md/Cargo.toml --all-targets
 cargo test --manifest-path md/Cargo.toml --doc
-/tmp/amat5315-field-venv/bin/python -m pytest ../week1/
+$HOME/.venvs/amat5315/bin/python -m pytest ../week1/
 ```
 
 重新生成本目录的 `dimer.png`：
 
 ```bash
-MPLCONFIGDIR=/tmp/amat5315-matplotlib /tmp/amat5315-field-venv/bin/python plot_two_atoms.py
+MPLCONFIGDIR=/tmp/amat5315-matplotlib $HOME/.venvs/amat5315/bin/python plot_two_atoms.py
 ```
 
 依赖与 Part 2 相同：Rust/Cargo、Python 3、NumPy、Matplotlib，旧 Python 测试需要 pytest。
@@ -198,18 +200,19 @@ md check /tmp/md-ramp-short
 以下步骤可以在 `/tmp` 环境被清理后重新建立，不依赖旧环境仍存在：
 
 ```bash
-python3 -m venv /tmp/amat5315-field-venv
-/tmp/amat5315-field-venv/bin/python -m pip install numpy==2.5.3 matplotlib==3.11.1 pytest==9.1.1
-export MD_PYTHON=/tmp/amat5315-field-venv/bin/python
+mkdir -p "$HOME/.venvs"
+python3 -m venv $HOME/.venvs/amat5315
+$HOME/.venvs/amat5315/bin/python -m pip install numpy==2.5.3 matplotlib==3.11.1 pytest==9.1.1
+export MD_PYTHON=$HOME/.venvs/amat5315/bin/python
 export MPLCONFIGDIR=/tmp/amat5315-matplotlib
 ```
 
 若缺少ensurepip，可用系统pip重建：
 
 ```bash
-python3 -m venv --without-pip /tmp/amat5315-field-venv
-python3 -m pip --python /tmp/amat5315-field-venv/bin/python install numpy==2.5.3 matplotlib==3.11.1 pytest==9.1.1
-export MD_PYTHON=/tmp/amat5315-field-venv/bin/python
+python3 -m venv --without-pip $HOME/.venvs/amat5315
+python3 -m pip --python $HOME/.venvs/amat5315/bin/python install numpy==2.5.3 matplotlib==3.11.1 pytest==9.1.1
+export MD_PYTHON=$HOME/.venvs/amat5315/bin/python
 export MPLCONFIGDIR=/tmp/amat5315-matplotlib
 ```
 
@@ -378,13 +381,13 @@ Cargo安装记录指向本仓库`week2/md`；安装文件和`md/target/release/m
 本项目Rust保持SEED=2026及已确认规则。因此这里比较两份现有程序的端到端运行时间，
 不能声称是同一条初态轨迹或仅力核的微基准。两者默认均为100原子、2000平衡步和10000正式步。
 
-复用`/tmp/amat5315-field-venv/bin/python`，NumPy 2.5.3可导入；
+复用`$HOME/.venvs/amat5315/bin/python`，NumPy 2.5.3可导入；
 已通过runpy以非`__main__`方式加载课程脚本验证依赖，没有执行main或模拟。
 若该临时环境已清理，按前文“视频依赖与环境重建”重新建立；只做测速时也可建立仅NumPy环境：
 
 ```bash
-python3 -m venv /tmp/amat5315-field-venv
-/tmp/amat5315-field-venv/bin/python -m pip install numpy==2.5.3
+python3 -m venv $HOME/.venvs/amat5315
+$HOME/.venvs/amat5315/bin/python -m pip install numpy==2.5.3
 ```
 
 缺ensurepip时采用前文`--without-pip`与系统pip的重建方式。不要用系统无NumPy的Python替换命令而忽略错误。
@@ -399,7 +402,7 @@ python3 -m venv /tmp/amat5315-field-venv
 ```bash
 cd /home/mengjun/AMAT5315-2026Fall-Exercise/week2
 export PATH="$HOME/.cargo/bin:$PATH"
-export MD_PYTHON=/tmp/amat5315-field-venv/bin/python
+export MD_PYTHON=$HOME/.venvs/amat5315/bin/python
 hash -r
 command -v md
 cmp "$(command -v md)" md/target/release/md

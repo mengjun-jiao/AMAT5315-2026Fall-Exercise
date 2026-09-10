@@ -2,7 +2,7 @@
 use std::{io::Write, path::Path, process::Command};
 
 fn render_script_source() -> &'static [u8] {
-    &[]
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../render_fluid.py"))
 }
 
 #[cfg(test)]
@@ -61,7 +61,8 @@ pub fn render_video(dir: &Path, out: &Path) -> Result<(), String> {
         .suffix(".mp4")
         .tempfile_in(parent)
         .map_err(|e| e.to_string())?;
-    let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("../render_fluid.py");
+    let script = temp.path().join("render_fluid.py");
+    std::fs::write(&script, render_script_source()).map_err(|e| format!("video script: {e}"))?;
     checked(
         Command::new(&python)
             .env("MPLCONFIGDIR", &cache)

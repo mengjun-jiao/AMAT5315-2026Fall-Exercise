@@ -35,7 +35,7 @@ md check /tmp/md-ramp-short-final
 
 ```bash
 PATH=/tmp/amat5315-ffmpeg:$PATH \
-MD_PYTHON=/tmp/amat5315-scaling-venv/bin/python \
+MD_PYTHON=$HOME/.venvs/amat5315/bin/python \
 MPLCONFIGDIR=/tmp/amat5315-matplotlib \
 cargo test --release --manifest-path md/Cargo.toml --all-targets
 cargo test --manifest-path md/Cargo.toml --doc
