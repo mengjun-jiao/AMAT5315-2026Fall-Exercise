@@ -10,6 +10,8 @@ pub struct RunConfig {
     pub sample_every: usize,
     pub seed: u64,
     pub integrator: String,
+    #[serde(default)]
+    pub ramp_to: Option<f64>,
 }
 impl Default for RunConfig {
     fn default() -> Self {
@@ -23,6 +25,7 @@ impl Default for RunConfig {
             sample_every: 50,
             seed: 2026,
             integrator: "velocity-verlet".into(),
+            ramp_to: None,
         }
     }
 }
@@ -42,6 +45,11 @@ impl RunConfig {
         }
         if self.integrator != "velocity-verlet" && self.integrator != "euler" {
             return Err("unknown integrator".into());
+        }
+        if let Some(target) = self.ramp_to {
+            if !target.is_finite() || target <= 0.0 {
+                return Err("ramp_to must be finite and positive".into());
+            }
         }
         let (_, box_size) = lattice(self.n, self.rho)?;
         crate::physics::PhysicalModel::PeriodicShiftedLennardJones { box_size, rc: 2.5 }.validate()

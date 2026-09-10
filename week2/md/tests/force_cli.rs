@@ -75,3 +75,38 @@ fn metadata_with_unknown_force_method_is_rejected() {
     std::fs::write(tmp.path().join("run.json"), serde_json::to_vec(&json).unwrap()).unwrap();
     assert!(md::trajectory::read_trajectory(tmp.path()).is_err());
 }
+
+#[test]
+fn ramp_to_is_written_and_legacy_metadata_defaults_to_none() {
+    let tmp = tempfile::tempdir().unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_md"))
+        .args([
+            "run", "--ramp-to", "1.0", "--eq-steps", "0", "--steps", "2",
+            "--sample-every", "1", "--out",
+        ])
+        .arg(tmp.path())
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let mut json: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(tmp.path().join("run.json")).unwrap())
+            .unwrap();
+    assert_eq!(json["ramp_to"], 1.0);
+    json.as_object_mut().unwrap().remove("ramp_to");
+    std::fs::write(tmp.path().join("run.json"), serde_json::to_vec(&json).unwrap()).unwrap();
+    let (meta, _) = md::trajectory::read_trajectory(tmp.path()).unwrap();
+    assert_eq!(meta.ramp_to, None);
+}
+
+#[test]
+fn invalid_ramp_to_values_are_rejected() {
+    for value in ["0", "-1", "not-a-number"] {
+        let tmp = tempfile::tempdir().unwrap();
+        let out = Command::new(env!("CARGO_BIN_EXE_md"))
+            .args(["run", "--ramp-to", value, "--out"])
+            .arg(tmp.path())
+            .output()
+            .unwrap();
+        assert!(!out.status.success(), "value {value} unexpectedly accepted");
+    }
+}

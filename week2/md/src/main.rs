@@ -42,6 +42,8 @@ struct RunArgs {
     out: PathBuf,
     #[arg(long, value_enum, default_value_t = md::neighbors::ForceMethod::Cells)]
     force: md::neighbors::ForceMethod,
+    #[arg(long)]
+    ramp_to: Option<f64>,
 }
 fn execute(cli: Cli) -> Result<(), String> {
     match cli.command {
@@ -57,6 +59,7 @@ fn execute(cli: Cli) -> Result<(), String> {
                 sample_every: a.sample_every,
                 seed: a.seed,
                 integrator: a.integrator,
+                ramp_to: a.ramp_to,
             };
             md::trajectory::run_to_directory_with_force(&c, &a.out, a.force)?;
             println!(
