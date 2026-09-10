@@ -133,9 +133,12 @@ pub struct CheckReport {
       let mut frames = Vec::new();
       evolve(&VelocityVerlet, &mut actual, &c, |f| { frames.push(f); Ok(()) }).unwrap();
       assert_eq!(frames.len(), 1);
-      assert!((frames[0].e_kin - actual.kinetic_energy()).abs() > 0.0);
-      assert!((frames[0].e_kin * 2.0 / (2 * c.n - 2) as f64 -
-          0.5).abs() < 0.05);
+      let mut expected50 = initialize(&c).unwrap();
+      for step in 1..=50 {
+          VelocityVerlet.step(&mut expected50, c.dt);
+          if step == 50 { expected50.rescale_temperature(0.5 + 0.5 * 50.0 / 51.0).unwrap(); }
+      }
+      assert!((frames[0].e_kin - expected50.kinetic_energy()).abs() < 1e-12);
       let mut expected = initialize(&c).unwrap();
       for step in 1..=51 {
           VelocityVerlet.step(&mut expected, c.dt);
