@@ -186,6 +186,32 @@ check输入目录为位置参数；任何文件错误、保存能量不一致或
 
 实现与测试证据见 [Part 5 ramp 验证记录](part5-ramp-validation.md)。
 
+本次已由用户运行并核对一条加热轨迹：`n=400`、`temperature=0.2`、
+`ramp_to=1.2`、`eq_steps=2000`、`steps=20000`、`sample_every=100`、
+`seed=2026`、`integrator=velocity-verlet`、`force_method=cells`，共200帧。
+用户执行 `md check artifacts/heating`，完整性检查通过，并在课程 viewer 中检查了首尾状态。
+该轨迹的正式网页副本为 `docs/run.json` 和 `docs/traj.jsonl`。
+
+已交付视频（均未重新运行实验）：
+
+| 文件 | 规格 |
+| --- | --- |
+| `cold.mp4` | 200帧，20 fps，10秒，960×480，843516字节 |
+| `hot.mp4` | 200帧，20 fps，10秒，960×480，978380字节 |
+
+文件规格由本地 `ffprobe` 和字节数核对。视频生成命令由用户在此前会话中执行，
+本记录不补写未实际看到的生成命令；可用 `ffprobe -v error -count_frames -select_streams v:0
+-show_entries stream=width,height,r_frame_rate,nb_read_frames -of default=nw=1
+cold.mp4`（将文件名替换为 `hot.mp4`）复核。
+
+### 网页交付
+
+`docs/index.html` 是从已使用的课程 viewer 复制的独立入口；`week2/week2-viewer.html`
+未修改。页面源码使用 `fetch("./run.json")` 和 `fetch("./traj.jsonl")`，因此从同一
+`docs/` 目录读取正式数据。已核对元数据和帧数：`n=400`、`steps=20000`、
+`sample_every=100`、`temperature=0.2`、`ramp_to=1.2`、200帧。这里是源码和文件核对，
+不表示已通过公开网站访问或 Pages 部署。
+
 短程验证示例（不会运行完整加热实验）：
 
 ```bash

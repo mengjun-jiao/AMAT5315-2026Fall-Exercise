@@ -1,7 +1,8 @@
 # Part 5 `--ramp-to` 验证记录
 
-本轮实现了可选正式阶段温度 ramp；没有运行 400 原子正式加热实验，没有生成 cold/hot
-视频，没有修改课程 viewer，也没有 push。
+本轮实现了可选正式阶段温度 ramp。随后用户运行并核对了 400 原子加热轨迹、cold/hot
+视频，并在课程 viewer 中检查了轨迹首尾状态；本记录不重复运行这些实验，也没有修改
+`week2/week2-viewer.html`、启用 Pages 或 push。
 
 实现约束：`RunConfig.ramp_to` 是唯一来源；每步顺序为完整积分、每50步缩放、采样；
 非50倍数末步不缩放；起止温度相同时仍执行正式阶段缩放。加热轨迹 check 只把结构、
@@ -41,7 +42,31 @@ cargo test --release --manifest-path md/Cargo.toml --all-targets
 cargo test --manifest-path md/Cargo.toml --doc
 ```
 
-正式加热实验和 cold/hot 视频留待后续，不在本轮记录结果。
+## 用户核对的加热交付
+
+加热运行参数为 `n=400`、`temperature=0.2`、`ramp_to=1.2`、`eq_steps=2000`、
+`steps=20000`、`sample_every=100`、`seed=2026`、`integrator=velocity-verlet`、
+`force_method=cells`，轨迹共200帧。用户执行 `md check artifacts/heating`，完整性检查
+返回0；课程 viewer 的首尾状态由用户手动查看。加热轨迹不将三项固定温度/能量守恒验收
+报告为 PASS，check 输出相应 `SKIP`。
+
+已核对并交付的视频文件规格如下：
+
+| 文件 | 帧数 | 帧率 | 时长 | 分辨率 | 字节数 |
+| --- | ---: | ---: | ---: | --- | ---: |
+| `week2/cold.mp4` | 200 | 20 fps | 10 s | 960×480 | 843516 |
+| `week2/hot.mp4` | 200 | 20 fps | 10 s | 960×480 | 978380 |
+
+网页入口和数据位于 `docs/index.html`、`docs/run.json`、`docs/traj.jsonl`。源码检查确认
+页面从同目录 fetch `./run.json` 与 `./traj.jsonl`，并核对了 `n=400`、`steps=20000`、
+`sample_every=100`、`temperature=0.2`、`ramp_to=1.2` 及200帧；这不等同于公开网站访问测试。
+
+复制前后 SHA-256 保持一致：
+
+```text
+run.json  fe76c7760b2d0b43a051f841de58fcd9db332fd405b2a046294d62dee7cc73a0
+traj.jsonl 5dcbc44441800382aa8f2438e473baf3f9ef3a13310cb2762464e6d0a483e06e
+```
 
 带 NumPy 环境的 Rust release all-targets 回归中，除视频测试外均通过；视频测试未跳过，
 实际失败原因为临时 ffmpeg/ffprobe 不存在。静态包下载两次均返回
