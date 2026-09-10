@@ -212,6 +212,21 @@ cold.mp4`（将文件名替换为 `hot.mp4`）复核。
 `sample_every=100`、`temperature=0.2`、`ramp_to=1.2`、200帧。这里是源码和文件核对，
 不表示已通过公开网站访问或 Pages 部署。
 
+GitHub Pages 已由用户在浏览器中手动验证并确认公开页面正常加载：
+<https://mengjun-jiao.github.io/AMAT5315-2026Fall-Exercise/> 。用户确认页面载入
+400 原子、200 帧，四个图表均正常显示；没有根据截图推断播放或自动播放操作已验证。
+
+### 学习单最终交付核对（截至 2026-09-10）
+
+已完成：Part 1–3 的物理实现和图、Part 4 的周期流体 CLI/check/video、Part 5 的
+cell-list 优化、ramp-to 加热、profiling 与 N=100/400/1600 规模测速；`cold.mp4`、
+`hot.mp4`、`fluid.mp4` 已提交；`docs/index.html` 及正式加热轨迹数据已提交；公开
+Pages 页面已由用户手动加载验证（400 原子、200 帧、四图表）。旧测试、真实 red/green
+提交和历史验证记录均保留。
+
+尚待补齐：仓库中未发现 `REVIEW.md`；尚无清洁克隆（clean clone）中的完整复现记录；
+尚无演示录屏及其核对记录。本次只更新文档，未重新运行任何实验。
+
 短程验证示例（不会运行完整加热实验）：
 
 ```bash

@@ -61,6 +61,17 @@ cargo test --manifest-path md/Cargo.toml --doc
 页面从同目录 fetch `./run.json` 与 `./traj.jsonl`，并核对了 `n=400`、`steps=20000`、
 `sample_every=100`、`temperature=0.2`、`ramp_to=1.2` 及200帧；这不等同于公开网站访问测试。
 
+## Pages 与最终交付核对
+
+公开入口为 <https://mengjun-jiao.github.io/AMAT5315-2026Fall-Exercise/> 。该页面已由用户
+在浏览器中手动加载并确认：显示400个原子、200帧，四个图表正常显示。未将截图未证明的
+播放或自动播放操作记录为已验证。
+
+截至本记录，学习单要求中已完成 Part 1–5 的实现、测试、图表、视频、加热轨迹完整性
+检查、profiling 和规模测速，且交付文件已经提交。检查仓库未发现 `REVIEW.md`，也没有
+清洁克隆复现记录或演示录屏；这三项仍是剩余交付工作。本次只更新文档，未重新运行实验、
+未修改实现、未修改课程 viewer、未 push。
+
 复制前后 SHA-256 保持一致：
 
 ```text
