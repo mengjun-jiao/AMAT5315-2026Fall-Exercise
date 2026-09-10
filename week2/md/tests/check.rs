@@ -126,3 +126,63 @@ fn real_check_binary_rejects_tampered_and_malformed_files() {
         assert!(String::from_utf8_lossy(&out.stderr).contains(reason));
     }
 }
+
+#[test]
+fn ramp_check_passes_integrity_and_reports_skips() {
+    use std::process::Command;
+    let tmp = tempfile::tempdir().unwrap();
+    let exe = env!("CARGO_BIN_EXE_md");
+    let out = Command::new(exe)
+        .args([
+            "run", "--ramp-to", "1.0", "--eq-steps", "0", "--steps", "100",
+            "--sample-every", "50", "--out",
+        ])
+        .arg(tmp.path())
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let out = Command::new(exe)
+        .args(["check"])
+        .arg(tmp.path())
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("SKIP"));
+    assert!(stdout.contains("不适用于启用 ramp_to 的轨迹"));
+    assert!(stdout.contains("加热轨迹完整性检查通过"));
+}
+
+#[test]
+fn ramp_check_rejects_tampered_energy_and_state() {
+    use std::process::Command;
+    let tmp = tempfile::tempdir().unwrap();
+    let exe = env!("CARGO_BIN_EXE_md");
+    assert!(
+        Command::new(exe)
+            .args(["run", "--ramp-to", "1.0", "--eq-steps", "0", "--steps", "100", "--sample-every", "50", "--out"])
+            .arg(tmp.path())
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    let original = std::fs::read_to_string(tmp.path().join("traj.jsonl")).unwrap();
+    let rows: Vec<serde_json::Value> = original.lines().map(|s| serde_json::from_str(s).unwrap()).collect();
+    for (field, reason) in [("E_pot", "E_pot"), ("vel", "E_kin")] {
+        let mut damaged = rows.clone();
+        if field == "E_pot" {
+            damaged[0][field] = serde_json::json!(damaged[0][field].as_f64().unwrap() + 1.0);
+        } else {
+            damaged[0]["vel"][0][0] = serde_json::json!(damaged[0]["vel"][0][0].as_f64().unwrap() + 1.0);
+        }
+        std::fs::write(
+            tmp.path().join("traj.jsonl"),
+            damaged.iter().map(|v| format!("{v}\n")).collect::<String>(),
+        )
+        .unwrap();
+        let out = Command::new(exe).arg("check").arg(tmp.path()).output().unwrap();
+        assert!(!out.status.success());
+        assert!(String::from_utf8_lossy(&out.stderr).contains(reason));
+    }
+}
