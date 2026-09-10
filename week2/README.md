@@ -216,21 +216,25 @@ GitHub Pages 已由用户在浏览器中手动验证并确认公开页面正常�
 <https://mengjun-jiao.github.io/AMAT5315-2026Fall-Exercise/> 。用户确认页面载入
 400 原子、200 帧，四个图表均正常显示；没有根据截图推断播放或自动播放操作已验证。
 
+### 演示录屏
+
+[Week 2 Final 演示录屏（GitHub Release）](https://github.com/mengjun-jiao/AMAT5315-2026Fall-Exercise/releases/tag/week2-final)
+由用户检查并上传。本会话未亲自观看或验证录屏内容。
+
 ### 学习单最终交付核对（截至 2026-09-10）
 
 已完成：Part 1–3 的物理实现和图、Part 4 的周期流体 CLI/check/video、Part 5 的
 cell-list 优化、ramp-to 加热、profiling 与 N=100/400/1600 规模测速；`cold.mp4`、
 `hot.mp4`、`fluid.mp4` 已提交；`docs/index.html` 及正式加热轨迹数据已提交；公开
-Pages 页面已由用户手动加载验证（400 原子、200 帧、四图表）。旧测试、真实 red/green
-提交和历史验证记录均保留。
+Pages 页面已由用户手动加载验证（400 原子、200 帧、四图表）；演示录屏已由用户检查并上传
+到上述 GitHub Release。旧测试、真实 red/green 提交和历史验证记录均保留。
 
 已补齐：最终代码审查记录见 [`REVIEW.md`](REVIEW.md)，干净克隆复现记录见
 [`final-reproduction.md`](final-reproduction.md)。该复现使用提交
 `6606357003b3734d3c7294d422de6cce6852b999`，新克隆内构建并运行默认模拟；200 帧及三项
 默认物理验收均通过，测试和准确退出码详见复现记录。
 
-尚待补齐：尚无演示录屏及其核对记录。本次没有运行正式加热实验、测速或 profiling，也没有
-修改课程 viewer。
+本次没有运行正式加热实验、测速或 profiling，也没有修改课程 viewer。
 
 短程验证示例（不会运行完整加热实验）：
 
