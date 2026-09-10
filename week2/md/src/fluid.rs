@@ -127,6 +127,13 @@ pub fn evolve<I: crate::Integrator>(
     }
     for step in 1..=c.steps {
         i.step(s, c.dt);
+        if let Some(end) = c.ramp_to {
+            if step % 50 == 0 {
+                let target = c.temperature
+                    + (end - c.temperature) * step as f64 / c.steps as f64;
+                s.rescale_temperature(target)?;
+            }
+        }
         if step % c.sample_every == 0 {
             let e_pot = s.potential_energy();
             let e_kin = s.kinetic_energy();
