@@ -155,8 +155,8 @@ Makefile 的 recipe 使用真实Tab；只执行release默认模拟，生成
 ```
 
 run支持 `--n --rho --temperature --dt --eq-steps --steps --sample-every --seed
---integrator --force --out`；积分器名称为 `velocity-verlet` 或 `euler`，`--force`
-可选 `naive` 或 `cells`，默认是 `cells`。
+--integrator --force --ramp-to --out`；积分器名称为 `velocity-verlet` 或 `euler`，`--force`
+可选 `naive` 或 `cells`，默认是 `cells`。可选 `--ramp-to` 会在正式阶段启用线性目标温度。
 check输入目录为位置参数；任何文件错误、保存能量不一致或物理验收失败均非零退出。
 它从每帧位置与速度重算能量，不推进模拟、不相信保存的能量。
 交叉核对容差为 `1e-10*max(1,abs(recomputed))`。
@@ -165,8 +165,31 @@ check输入目录为位置参数；任何文件错误、保存能量不一致或
 `k=max(1,floor(frame_count/10))` 帧的平均能量差除以abs(E0)小于2e-3；
 所有速率的 `T_speed=mean(v²)/2` 与0.5差值小于0.05；
 二维Maxwell-Boltzmann分布的24个等概率箱，`sum((Ob-Eb)²/Eb)/22<2`。
-最后一项仅是教学容差，不报告正式显著性或p值。check的温度目标固定0.5，
+最后一项仅是教学容差，不报告正式显著性或p值。无 ramp 时 check 的温度目标固定0.5，
 不会随元数据temperature改变；video仅要求轨迹结构合法，不要求这些默认指标通过。
+
+### Part 5 `--ramp-to` 加热
+
+`md run --ramp-to T_end` 保持平衡阶段的固定起始温度 `--temperature`，并在正式阶段按
+`T_target(s)=T_start+(T_end-T_start)*s/steps` 定义目标温度。每一步严格先完成完整积分，
+再在正式步号为50的倍数时按 `T_thermo=2K/(2N-2)` 缩放，最后采样；因此同一步缩放和
+采样时保存的是缩放后的速度和动能，末步不是50的倍数时不额外缩放。`ramp_to` 等于起始
+温度仍表示启用正式阶段温控，省略参数则正式阶段完全关闭温控。
+
+`run.json` 写入 `ramp_to`（数字或 `null`）；旧文件缺少该字段时按未启用 ramp 读取。
+对加热轨迹，`md check` 仍从位置和速度用 naive 路径重算并核对保存能量，完整性通过返回0，
+同时将能量漂移、固定温度和平衡速率分布明确标为 `SKIP`，因为它们不适用于加热过程，
+总结为“加热轨迹完整性检查通过”。完整性失败仍返回非零。课程 viewer 文件未修改，
+浏览器手动加载需另行检查。
+
+实现与测试证据见 [Part 5 ramp 验证记录](part5-ramp-validation.md)。
+
+短程验证示例（不会运行完整加热实验）：
+
+```bash
+md run --ramp-to 1.0 --eq-steps 0 --steps 51 --sample-every 50 --out /tmp/md-ramp-short
+md check /tmp/md-ramp-short
+```
 
 ### 视频依赖与环境重建
 

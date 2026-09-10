@@ -74,6 +74,26 @@ fn both_force_methods_pass_default_physical_checks() {
         assert!(report.mb_score < 2.);
     }
 }
+
+#[test]
+fn short_ramp_run_writes_expected_frames_and_metadata() {
+    let tmp = tempfile::tempdir().unwrap();
+    let exe = env!("CARGO_BIN_EXE_md");
+    let out = Command::new(exe)
+        .args([
+            "run", "--ramp-to", "1.0", "--eq-steps", "0", "--steps", "51",
+            "--sample-every", "50", "--out",
+        ])
+        .arg(tmp.path())
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let (meta, frames) = md::trajectory::read_trajectory(tmp.path()).unwrap();
+    assert_eq!(meta.ramp_to, Some(1.0));
+    assert_eq!(frames.len(), 1);
+    assert_eq!(frames[0].step, 50);
+    assert_eq!(frames[0].t, 0.5);
+}
 #[test]
 fn make_reproduce_runs_release_without_video_dependencies() {
     let tmp = tempfile::tempdir().unwrap();
