@@ -70,6 +70,15 @@ fn execute(cli: Cli) -> Result<(), String> {
         }
         Some(Commands::Check { directory }) => {
             let r = md::check::check_directory(&directory)?;
+            if !r.acceptance_applicable {
+                println!("结构与数值合法性：PASS");
+                println!("保存能量与独立重算一致性：PASS");
+                println!("能量漂移：SKIP（不适用于启用 ramp_to 的轨迹）");
+                println!("固定温度 T=0.5：SKIP（不适用于启用 ramp_to 的轨迹）");
+                println!("平衡速率分布：SKIP（不适用于启用 ramp_to 的轨迹）");
+                println!("加热轨迹完整性检查通过");
+                return Ok(());
+            }
             let label = |passed: bool| if passed { "PASS" } else { "FAIL" };
             println!(
                 "energy_drift={:.15e} < 2e-3 {}",

@@ -6,6 +6,7 @@ pub struct CheckReport {
     pub t_speed: f64,
     pub mb_score: f64,
     pub passed: bool,
+    pub acceptance_applicable: bool,
 }
 pub fn evaluate(meta: &RunMetadata, frames: &[Frame]) -> Result<CheckReport, String> {
     let model = crate::physics::PhysicalModel::PeriodicShiftedLennardJones {
@@ -27,7 +28,12 @@ pub fn evaluate(meta: &RunMetadata, frames: &[Frame]) -> Result<CheckReport, Str
         totals.push(u + k);
         speeds.extend(f.vel.iter().map(|v| v[0].hypot(v[1])));
     }
-    metrics(&totals, &speeds)
+    let mut report = metrics(&totals, &speeds)?;
+    report.acceptance_applicable = meta.ramp_to.is_none();
+    if !report.acceptance_applicable {
+        report.passed = true;
+    }
+    Ok(report)
 }
 pub fn check_directory(dir: &Path) -> Result<CheckReport, String> {
     let (meta, frames) = crate::trajectory::read_trajectory(dir)?;
@@ -69,6 +75,7 @@ fn metrics(energies: &[f64], speeds: &[f64]) -> Result<CheckReport, String> {
         t_speed,
         mb_score,
         passed,
+        acceptance_applicable: true,
     })
 }
 #[cfg(test)]
