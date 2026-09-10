@@ -24,7 +24,7 @@ hard-coded, and the installed binary works from any working directory.
 ## Evidence
 
 - `f998fd6`: embedded-script regression red; the test failed because the source was empty.
-- `4e8fe31` is the prior ramp implementation; this fix follows in the current video-path commit.
+- `4e8fe31` is the prior ramp implementation; the path fix is committed as `356e65c`.
 - Embedded-script unit regression passes.
 - From `week2/`, with the persistent Python environment:
 
@@ -39,3 +39,6 @@ hard-coded, and the installed binary works from any working directory.
 - The full release `--all-targets` suite, including the isolated Makefile test and video
   integration test, passes with the same environment. No generated video or trajectory is
   part of this change.
+- The reinstalled `/home/mengjun/.cargo/bin/md` was run from `/tmp`; it generated a two-frame
+  17,530-byte MP4 successfully, confirming that installation and working directory no longer
+  affect renderer discovery.
