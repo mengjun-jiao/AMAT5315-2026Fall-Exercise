@@ -1,5 +1,19 @@
 //! Export Rust-computed RDF and invoke the repository's rendering script.
 use std::{io::Write, path::Path, process::Command};
+
+fn render_script_source() -> &'static [u8] {
+    &[]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_script_source;
+
+    #[test]
+    fn rendering_script_is_available_without_source_tree() {
+        assert!(!render_script_source().is_empty());
+    }
+}
 fn checked(command: &mut Command, label: &str) -> Result<std::process::Output, String> {
     let out = command.output().map_err(|e| format!("{label}: {e}"))?;
     if !out.status.success() {
