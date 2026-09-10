@@ -28,11 +28,17 @@ pub fn evaluate(meta: &RunMetadata, frames: &[Frame]) -> Result<CheckReport, Str
         totals.push(u + k);
         speeds.extend(f.vel.iter().map(|v| v[0].hypot(v[1])));
     }
-    let mut report = metrics(&totals, &speeds)?;
-    report.acceptance_applicable = meta.ramp_to.is_none();
-    if !report.acceptance_applicable {
-        report.passed = true;
+    if meta.ramp_to.is_some() {
+        return Ok(CheckReport {
+            drift: 0.,
+            t_speed: 0.,
+            mb_score: 0.,
+            passed: true,
+            acceptance_applicable: false,
+        });
     }
+    let mut report = metrics(&totals, &speeds)?;
+    report.acceptance_applicable = true;
     Ok(report)
 }
 pub fn check_directory(dir: &Path) -> Result<CheckReport, String> {

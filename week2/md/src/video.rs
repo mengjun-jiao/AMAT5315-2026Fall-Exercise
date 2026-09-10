@@ -97,7 +97,7 @@ pub fn render_video(dir: &Path, out: &Path) -> Result<(), String> {
             "video validation failed: frames={count}, bytes={bytes}"
         ));
     }
-    movie.persist(out).map_err(|e| e.to_string())?;
+    std::fs::rename(movie.path(), out).map_err(|e| format!("{}: {e}", out.display()))?;
     println!("Saved {}: frames={count}, bytes={bytes}", out.display());
     Ok(())
 }
