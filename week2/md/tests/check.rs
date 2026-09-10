@@ -186,3 +186,29 @@ fn ramp_check_rejects_tampered_energy_and_state() {
         assert!(String::from_utf8_lossy(&out.stderr).contains(reason));
     }
 }
+
+#[test]
+fn ramp_check_skips_metrics_even_when_speed_is_zero() {
+    let c = RunConfig {
+        eq_steps: 0,
+        steps: 1,
+        sample_every: 1,
+        ramp_to: Some(1.0),
+        ..Default::default()
+    };
+    let (pos, box_size) = lattice(c.n, c.rho).unwrap();
+    let model = md::physics::PhysicalModel::PeriodicShiftedLennardJones { box_size, rc: 2.5 };
+    let (e_pot, e_kin) = md::physics::energies(&pos, &vec![[0.; 2]; 100], &model).unwrap();
+    let meta = RunMetadata { config: c, box_size, force_method: ForceMethod::Naive };
+    let frame = Frame {
+        step: 1,
+        t: 0.01,
+        pos,
+        vel: vec![[0.; 2]; 100],
+        e_pot,
+        e_kin,
+    };
+    let report = md::check::evaluate(&meta, &[frame]).unwrap();
+    assert!(!report.acceptance_applicable);
+    assert!(report.passed);
+}

@@ -26,6 +26,18 @@ fn video_binary_encodes_every_saved_frame_and_checks_dependencies() {
         String::from_utf8_lossy(&out.stderr)
     );
     assert!(std::fs::metadata(&mp4).unwrap().len() < 2_000_000);
+    let overwrite = Command::new(exe)
+        .arg("video")
+        .arg(tmp.path())
+        .arg("--out")
+        .arg(&mp4)
+        .output()
+        .unwrap();
+    assert!(
+        overwrite.status.success(),
+        "{}",
+        String::from_utf8_lossy(&overwrite.stderr)
+    );
     let probe = Command::new("ffprobe")
         .args([
             "-v",
