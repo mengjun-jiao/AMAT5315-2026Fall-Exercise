@@ -1,0 +1,48 @@
+Week 3 Part 4 sampler agreement and Wolff critical-temperature report
+method=circular moving-block bootstrap; each block is a consecutive ordered segment from a uniform start, wrapping at the end
+root_seed=20260916, replicates=500, block_lengths=(2000, 4000, 8000)
+tail_rule=sample ceil(N/B) blocks and truncate the concatenation to exactly N=100000; no independent tail shuffling
+
+wolff_original_L32_T_peak=2.34877191
+wolff_original_L64_T_peak=2.31163239
+wolff_original_Tc=2.27449286
+wolff_original_relative_error=0.00233690
+
+L=64 sampler agreement by temperature (mean_abs_M and bootstrap SE for block lengths 2000, 4000, 8000):
+T=2.00 M_metropolis=0.911379 SE_metropolis=0.00014699,0.00012947,0.00010714 stable_metropolis=False M_wolff=0.911296 SE_wolff=0.00006449,0.00005527,0.00005261 stable_wolff=False d=0.5161,0.5885,0.6941
+T=2.05 M_metropolis=0.892990 SE_metropolis=0.00027686,0.00027592,0.00028754 stable_metropolis=True M_wolff=0.892821 SE_wolff=0.00006789,0.00006063,0.00004980 stable_wolff=False d=0.5924,0.5978,0.5787
+T=2.10 M_metropolis=0.868777 SE_metropolis=0.00042350,0.00043976,0.00032760 stable_metropolis=False M_wolff=0.868715 SE_wolff=0.00010455,0.00009990,0.00008964 stable_wolff=True d=0.1416,0.1369,0.1818
+T=2.15 M_metropolis=0.835848 SE_metropolis=0.00090369,0.00088896,0.00084915 stable_metropolis=True M_wolff=0.835802 SE_wolff=0.00018611,0.00017898,0.00017430 stable_wolff=True d=0.0503,0.0511,0.0535
+T=2.20 M_metropolis=0.787351 SE_metropolis=0.00251501,0.00221736,0.00286063 stable_metropolis=False M_wolff=0.784763 SE_wolff=0.00031741,0.00030576,0.00030881 stable_wolff=True d=1.0212,1.1565,0.8997
+T=2.25 M_metropolis=0.664292 SE_metropolis=0.01460156,0.01549653,0.01523749 stable_metropolis=True M_wolff=0.677535 SE_wolff=0.00078139,0.00079071,0.00079450 stable_wolff=True d=0.9057,0.8535,0.8679
+T=2.30 M_metropolis=0.424489 SE_metropolis=0.01877294,0.01968163,0.01592846 stable_metropolis=False M_wolff=0.433669 SE_wolff=0.00195946,0.00209463,0.00226071 stable_wolff=True d=0.4864,0.4638,0.5706
+T=2.35 M_metropolis=0.244991 SE_metropolis=0.01157889,0.01422940,0.01339807 stable_metropolis=False M_wolff=0.241460 SE_wolff=0.00127951,0.00131498,0.00118237 stable_wolff=True d=0.3031,0.2471,0.2625
+T=2.40 M_metropolis=0.172486 SE_metropolis=0.00586131,0.00598176,0.00526378 stable_metropolis=True M_wolff=0.159773 SE_wolff=0.00099159,0.00107260,0.00105128 stable_wolff=True d=2.1386,2.0919,2.3684
+T=2.45 M_metropolis=0.124694 SE_metropolis=0.00372998,0.00395804,0.00412264 stable_metropolis=True M_wolff=0.122056 SE_wolff=0.00093679,0.00098728,0.00106491 stable_wolff=True d=0.6861,0.6468,0.6197
+T=2.50 M_metropolis=0.100209 SE_metropolis=0.00219082,0.00218763,0.00220956 stable_metropolis=True M_wolff=0.099596 SE_wolff=0.00077383,0.00074256,0.00074477 stable_wolff=True d=0.2636,0.2651,0.2626
+T=2.55 M_metropolis=0.086547 SE_metropolis=0.00168292,0.00153676,0.00150104 stable_metropolis=True M_wolff=0.085016 SE_wolff=0.00076426,0.00077380,0.00078086 stable_wolff=True d=0.8281,0.8896,0.9046
+T=2.60 M_metropolis=0.076739 SE_metropolis=0.00125025,0.00113747,0.00097489 stable_metropolis=False M_wolff=0.075990 SE_wolff=0.00087961,0.00091336,0.00099495 stable_wolff=True d=0.4902,0.5137,0.5379
+
+T=2.3 agreement interpretation:
+d_by_block_length=0.486389, 0.463833, 0.570643
+both_error_sets_stable=False
+agreement provisional
+Part 3 binning-platform conclusion remains: sampling error unresolved for the Metropolis critical series.
+
+Wolff Tc bootstrap:
+block_length=2000 seed_L32=20270916 seed_L64=20271016
+attempts=500 valid_L32=500 valid_L64=500 valid_Tc=500 failed_Tc=0
+L32_failure_reasons={} L64_failure_reasons={}
+L32_peak_SE=0.00044214 L64_peak_SE=0.00022636 Tc_SE=0.00063394
+block_length=4000 seed_L32=20270917 seed_L64=20271017
+attempts=500 valid_L32=500 valid_L64=500 valid_Tc=500 failed_Tc=0
+L32_failure_reasons={} L64_failure_reasons={}
+L32_peak_SE=0.00042169 L64_peak_SE=0.00022422 Tc_SE=0.00061452
+block_length=8000 seed_L32=20270918 seed_L64=20271018
+attempts=500 valid_L32=500 valid_L64=500 valid_Tc=500 failed_Tc=0
+L32_failure_reasons={} L64_failure_reasons={}
+L32_peak_SE=0.00041270 L64_peak_SE=0.00021162 Tc_SE=0.00058444
+Tc_SE_mean=0.00061097
+Tc_SE_relative_deviations=0.037607, 0.005811, 0.043418
+Tc_sampling_error_stable=True
+This is sampling error only; it excludes finite-size extrapolation bias and five-point quadratic-fit bias.
