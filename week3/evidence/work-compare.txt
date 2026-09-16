@@ -1,0 +1,25 @@
+Week 3 Part 4 work-normalized autocorrelation report
+observable=abs(M)
+Metropolis time_unit=sweep; Wolff time_unit=cluster_flip
+tau_work rule: Metropolis=tau_sweeps; Wolff=tau_moves*mean_cluster_size/L^2
+This compares spin-update work (Metropolis proposals including rejections versus Wolff flipped spins), not elapsed runtime.
+autocorrelation=zero-padded FFT of the demeaned series; cutoff is the first lag greater than 6 times the running tau_int
+
+T tau_metropolis_sweeps metropolis_cutoff_status tau_wolff_moves wolff_cutoff_status mean_cluster_size tau_work_metropolis tau_work_wolff R
+2.00 8.897333 resolved(cutoff=54) 0.998381 resolved(cutoff=7) 3401.521620 8.897333 0.829105 10.731251
+2.05 12.805149 resolved(cutoff=77) 1.102914 resolved(cutoff=7) 3269.971100 12.805149 0.880492 14.543174
+2.10 21.807557 resolved(cutoff=131) 1.215924 resolved(cutoff=8) 3093.188620 21.807557 0.918233 23.749484
+2.15 44.355381 resolved(cutoff=267) 1.429701 resolved(cutoff=9) 2861.052970 44.355381 0.998645 44.415565
+2.20 141.133604 resolved(cutoff=847) 1.813152 resolved(cutoff=11) 2537.530480 141.133604 1.123274 125.644893
+2.25 647.279148 resolved(cutoff=3884) 3.161230 resolved(cutoff=19) 1942.354490 647.279148 1.499080 431.784368
+2.30 520.754893 resolved(cutoff=3125) 4.704514 resolved(cutoff=29) 938.893610 520.754893 1.078379 482.905469
+2.35 369.326274 resolved(cutoff=2216) 3.738537 resolved(cutoff=23) 336.839270 369.326274 0.307443 1201.284018
+2.40 128.445341 resolved(cutoff=771) 3.441468 resolved(cutoff=21) 157.249740 128.445341 0.132122 972.175461
+2.45 77.830217 resolved(cutoff=467) 4.328191 resolved(cutoff=26) 94.371400 77.830217 0.099721 780.479357
+2.50 53.228285 resolved(cutoff=320) 5.643234 resolved(cutoff=34) 62.765520 53.228285 0.086475 615.535624
+2.55 32.129702 resolved(cutoff=193) 7.069659 resolved(cutoff=43) 46.008400 32.129702 0.079410 404.604829
+2.60 25.634037 resolved(cutoff=154) 10.358921 resolved(cutoff=63) 35.708090 25.634037 0.090307 283.854526
+
+Interpretation:
+R is a spin-update-work ratio, not an elapsed-time speedup.
+No formal error bar is assigned to these autocorrelation estimates in this work comparison.

@@ -1,6 +1,7 @@
 """Compare Metropolis and Wolff window samples with block bootstrap errors."""
 
 import json
+import argparse
 from collections import Counter
 from pathlib import Path
 
@@ -30,7 +31,7 @@ def read_series(name: str, lattice_size: int, update: str) -> dict[int, np.ndarr
         raise ValueError(f"unexpected metadata in {directory}")
     if run["measure"] != 100000 or run["sample_every"] != 1:
         raise ValueError(f"unexpected measurement metadata in {directory}")
-    rows = {key: np.empty((100000, 2), dtype=float) for key in TEMPERATURE_KEYS}
+    rows = {key: np.empty((100000, 3), dtype=float) for key in TEMPERATURE_KEYS}
     counts = {key: 0 for key in TEMPERATURE_KEYS}
     with (directory / "series.jsonl").open() as stream:
         for line in stream:
@@ -38,7 +39,7 @@ def read_series(name: str, lattice_size: int, update: str) -> dict[int, np.ndarr
             key = round(row["T"] * 1000)
             if key not in rows or counts[key] == 100000:
                 raise ValueError(f"unexpected temperature or row count in {directory}")
-            rows[key][counts[key]] = (abs(row["M"]), row["M"] ** 2)
+            rows[key][counts[key]] = (abs(row["M"]), row["M"] ** 2, row.get("cluster_size", 0))
             counts[key] += 1
             if update == "wolff" and not 1 <= row.get("cluster_size", 0) <= lattice_size * lattice_size:
                 raise ValueError(f"invalid cluster size in {directory}")
@@ -253,8 +254,70 @@ def plot(data: dict, results: dict) -> None:
     plt.close(figure)
 
 
+def efficiency_analysis() -> None:
+    """Compute spin-update work per effective sample without bootstrap reruns."""
+    metropolis = read_series("window-l64", 64, "metropolis")
+    wolff = read_series("wolff-l64", 64, "wolff")
+    from errors import autocorrelation, tau_with_cutoff
+
+    lines = [
+        "Week 3 Part 4 work-normalized autocorrelation report",
+        "observable=abs(M)",
+        "Metropolis time_unit=sweep; Wolff time_unit=cluster_flip",
+        "tau_work rule: Metropolis=tau_sweeps; Wolff=tau_moves*mean_cluster_size/L^2",
+        "This compares spin-update work (Metropolis proposals including rejections versus Wolff flipped spins), not elapsed runtime.",
+        "autocorrelation=zero-padded FFT of the demeaned series; cutoff is the first lag greater than 6 times the running tau_int",
+        "",
+        "T tau_metropolis_sweeps metropolis_cutoff_status tau_wolff_moves wolff_cutoff_status mean_cluster_size tau_work_metropolis tau_work_wolff R",
+    ]
+    work_ratios = []
+    temperatures = []
+    for key in TEMPERATURE_KEYS:
+        temperature = key / 1000
+        rho_m = autocorrelation(metropolis[key][:, 0])
+        tau_m, cutoff_m, resolved_m = tau_with_cutoff(rho_m)
+        rho_w = autocorrelation(wolff[key][:, 0])
+        tau_w, cutoff_w, resolved_w = tau_with_cutoff(rho_w)
+        mean_cluster = float(wolff[key][:, 2].mean())
+        work_m = tau_m
+        work_w = tau_w * mean_cluster / (64 * 64)
+        ratio = work_m / work_w
+        temperatures.append(temperature)
+        work_ratios.append((work_m, work_w, ratio))
+        status_m = f"resolved(cutoff={cutoff_m})" if resolved_m else f"sampling_error_unresolved(cutoff={cutoff_m})"
+        status_w = f"resolved(cutoff={cutoff_w})" if resolved_w else f"sampling_error_unresolved(cutoff={cutoff_w})"
+        lines.append(f"{temperature:.2f} {tau_m:.6f} {status_m} {tau_w:.6f} {status_w} {mean_cluster:.6f} {work_m:.6f} {work_w:.6f} {ratio:.6f}")
+    lines += ["", "Interpretation:"]
+    lines.append("R is a spin-update-work ratio, not an elapsed-time speedup.")
+    lines.append("No formal error bar is assigned to these autocorrelation estimates in this work comparison.")
+    (EVIDENCE / "work-compare.txt").write_text("\n".join(lines) + "\n")
+
+    figure, axis = plt.subplots(figsize=(8, 5))
+    axis.plot(temperatures, [value[0] for value in work_ratios], "o-", label="Metropolis tau_work")
+    axis.plot(temperatures, [value[1] for value in work_ratios], "o-", label="Wolff tau_work")
+    tc = 2 / np.log(1 + np.sqrt(2))
+    axis.axvline(tc, color="black", linestyle=":", label="Tc = 2.26919")
+    axis.set_yscale("log")
+    axis.set_xlabel("Temperature T")
+    axis.set_ylabel("Work-normalized autocorrelation time")
+    axis.set_title("Spin-update work per effective abs(M) sample")
+    axis.grid(alpha=0.25, which="both")
+    axis.legend()
+    figure.tight_layout()
+    figure.savefig(EVIDENCE / "tau-compare.png", dpi=160, bbox_inches="tight")
+    plt.close(figure)
+    print((EVIDENCE / "work-compare.txt").read_text(), end="")
+    print(f"saved {EVIDENCE / 'tau-compare.png'}")
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--efficiency", action="store_true", help="run only the work-normalized efficiency comparison")
+    options = parser.parse_args()
     EVIDENCE.mkdir(parents=True, exist_ok=True)
+    if options.efficiency:
+        efficiency_analysis()
+        return
     data = {
         "metropolis": {32: read_series("window-l32", 32, "metropolis"), 64: read_series("window-l64", 64, "metropolis")},
         "wolff": {32: read_series("wolff-l32", 32, "wolff"), 64: read_series("wolff-l64", 64, "wolff")},
