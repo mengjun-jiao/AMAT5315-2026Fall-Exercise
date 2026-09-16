@@ -173,13 +173,13 @@ The source code and tests are built with `cargo fmt`, `cargo test`, and
 
 ### Manual viewer screenshots
 
-The course-player address used for the available public course page is:
+The course viewer is:
 
-<https://mengjun-jiao.github.io/AMAT5315-2026Fall-Exercise/>
+<https://giggleliu.github.io/AMAT5315-2026Fall/week3-viewer.html>
 
-The exact Recording URL used for the three manual exports is not present in the
-repository or in this checkout. It must be recorded here from the browser
-session before final delivery; no URL is invented in this README.
+The recording URL loaded by the viewer is:
+
+<https://raw.githubusercontent.com/mengjun-jiao/AMAT5315-2026Fall-Exercise/main/week3/spins.jsonl>
 
 The manual procedure is:
 
@@ -253,10 +253,15 @@ claimed here.
 ## Repository and contract boundaries
 
 The local `ising.design.toml` was copied from the WSL Desktop attachment and
-checked against page 3 of the learning sheet. The official downloadable
-`week3-ising.design.toml` reference mentioned on page 17 was not available in
-the repository or from the course URLs checked during this work, so no claim is
-made that an official reference file was compared.
+checked against page 3 of the learning sheet. The official reference named on
+page 17 is available at:
+
+<https://giggleliu.github.io/AMAT5315-2026Fall/downloads/week3-ising.design.toml>
+
+That file was downloaded to a temporary path and compared section by section
+and field by field with the local contract. The semantic contract matches; the
+official copy only differs in alignment whitespace and a trailing blank line.
+The local contract was not overwritten.
 
 The following are intentionally local and not committed:
 
