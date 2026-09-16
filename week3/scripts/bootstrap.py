@@ -72,23 +72,14 @@ def peak_fit(temperatures: np.ndarray, chi: np.ndarray) -> tuple[float | None, s
     return peak, None, (fit_temperatures[0], fit_temperatures[-1]), coefficients
 
 
-def block_columns(columns: np.ndarray, block_length: int) -> tuple[np.ndarray, np.ndarray, int]:
-    block_count = len(columns) // block_length
-    remainder = len(columns) % block_length
-    full_blocks = columns[: block_count * block_length].reshape(block_count, block_length, 2).mean(axis=1)
-    tail = columns[block_count * block_length :]
-    return full_blocks, tail, remainder
-
-
-def resample_block_columns(
-    full_blocks: np.ndarray, tail: np.ndarray, sample_count: int, rng: np.random.Generator
-) -> np.ndarray:
-    selected = rng.integers(0, len(full_blocks), size=len(full_blocks))
-    full_total = full_blocks[selected].sum(axis=0) * sample_count
-    if len(tail) == 0:
-        return full_total / (len(full_blocks) * sample_count)
-    tail_sample = tail[rng.integers(0, len(tail), size=len(tail))]
-    return (full_total + tail_sample.sum(axis=0)) / (len(full_blocks) * sample_count + len(tail))
+def circular_moving_block(columns: np.ndarray, block_length: int, rng: np.random.Generator) -> np.ndarray:
+    """Resample ceil(N/B) circular consecutive blocks, then truncate to N rows."""
+    sample_count = len(columns)
+    block_count = (sample_count + block_length - 1) // block_length
+    starts = rng.integers(0, sample_count, size=block_count)
+    offsets = np.arange(block_length)
+    indices = (starts[:, None] + offsets[None, :]) % sample_count
+    return columns[indices.reshape(-1)[:sample_count]]
 
 
 def bootstrap(
@@ -105,18 +96,8 @@ def bootstrap(
             "peak_values": {32: [], 64: []},
             "tc_values": [],
             "tc_failures": Counter(),
-            "discarded": {},
         }
         envelopes[block_length] = {32: [], 64: []}
-        block_means = {}
-        for lattice_size in (32, 64):
-            _, series = data[lattice_size]
-            block_means[lattice_size] = {}
-            reports[block_length]["discarded"][lattice_size] = set()
-            for key in TEMPERATURE_KEYS:
-                full_blocks, tail, remainder = block_columns(series[key], block_length)
-                block_means[lattice_size][key] = (full_blocks, tail)
-                reports[block_length]["discarded"][lattice_size].add(remainder)
 
         valid_counts = {32: 0, 64: 0}
         failure_counts = {32: Counter(), 64: Counter()}
@@ -125,9 +106,9 @@ def bootstrap(
             for lattice_size in (32, 64):
                 chi = []
                 for key in TEMPERATURE_KEYS:
-                    full_blocks, tail = block_means[lattice_size][key]
-                    resampled = resample_block_columns(full_blocks, tail, block_length, rng)
-                    chi.append(chi_from_columns(resampled[None, :], lattice_size, key / 1000))
+                    source = data[lattice_size][1][key]
+                    resampled = circular_moving_block(source, block_length, rng)
+                    chi.append(chi_from_columns(resampled, lattice_size, key / 1000))
                 peak, reason, interval, coefficients = peak_fit(temperatures, np.array(chi))
                 if reason:
                     failure_counts[lattice_size][reason] += 1
@@ -153,9 +134,9 @@ def write_report(
     original_peaks = {}
     lines = [
         "Week 3 Part 3 block bootstrap report",
-        f"method=non-overlapping consecutive blocks, sampled with replacement; block contents remain ordered",
+        f"method=circular moving-block bootstrap; each block is a consecutive ordered segment sampled from a uniform start",
         f"seed={SEED}, replicates={REPLICATES}, critical_window=2.0..2.6, temperatures=13",
-        "tail_rule=full consecutive blocks are sampled with replacement; a non-divisible terminal remainder is sampled within itself and appended, preserving n=100000",
+        "tail_rule=circular moving-block bootstrap; sample ceil(N/B) blocks from uniform starts, wrap at the end, concatenate, then truncate to exactly N=100000",
         "",
     ]
     for lattice_size in (32, 64):
@@ -184,7 +165,7 @@ def write_report(
                 f"Tc_bootstrap_mean={tc_values.mean():.8f}, Tc_bootstrap_se_ddof1={tc_se:.8f}",
                 f"L32_peak_se_ddof1={np.std(report['peak_values'][32], ddof=1):.8f}",
                 f"L64_peak_se_ddof1={np.std(report['peak_values'][64], ddof=1):.8f}",
-                f"remainder_length_L32={sorted(report['discarded'][32])}, remainder_length_L64={sorted(report['discarded'][64])}",
+                f"circular_block_count={int(np.ceil(100000 / block_length))}, generated_rows={int(np.ceil(100000 / block_length)) * block_length}, truncated_rows={int(np.ceil(100000 / block_length)) * block_length - 100000}",
                 "",
             ]
         )
@@ -236,7 +217,7 @@ def plot(
     figure.legend(handles, labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.04))
     figure.suptitle("Block-bootstrap susceptibility peak fits\nShaded regions are envelopes of valid fitted parabolas, not confidence intervals")
     figure.tight_layout(rect=(0, 0.12, 1, 0.93))
-    figure.savefig(EVIDENCE / "chi-bootstrap.png", dpi=160)
+    figure.savefig(EVIDENCE / "chi-bootstrap.png", dpi=160, bbox_inches="tight")
     plt.close(figure)
 
 

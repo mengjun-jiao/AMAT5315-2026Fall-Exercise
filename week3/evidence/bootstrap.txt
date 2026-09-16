@@ -1,7 +1,7 @@
 Week 3 Part 3 block bootstrap report
-method=non-overlapping consecutive blocks, sampled with replacement; block contents remain ordered
+method=circular moving-block bootstrap; each block is a consecutive ordered segment sampled from a uniform start
 seed=20260916, replicates=500, critical_window=2.0..2.6, temperatures=13
-tail_rule=full consecutive blocks are sampled with replacement; a non-divisible terminal remainder is sampled within itself and appended, preserving n=100000
+tail_rule=circular moving-block bootstrap; sample ceil(N/B) blocks from uniform starts, wrap at the end, concatenate, then truncate to exactly N=100000
 
 original_center_L32_T_peak=2.34962343
 original_center_L64_T_peak=2.31082003
@@ -11,30 +11,30 @@ block_length=2000
 attempts=500, valid_Tc=500, failed_Tc=0
 L32_valid=500, L32_failed=0, L32_failure_reasons={}
 L64_valid=500, L64_failed=0, L64_failure_reasons={}
-Tc_bootstrap_mean=2.27350579, Tc_bootstrap_se_ddof1=0.00681440
-L32_peak_se_ddof1=0.00413049
-L64_peak_se_ddof1=0.00282335
-remainder_length_L32=[0], remainder_length_L64=[0]
+Tc_bootstrap_mean=2.27357360, Tc_bootstrap_se_ddof1=0.00753755
+L32_peak_se_ddof1=0.00450195
+L64_peak_se_ddof1=0.00300639
+circular_block_count=50, generated_rows=100000, truncated_rows=0
 
 block_length=4000
 attempts=500, valid_Tc=500, failed_Tc=0
 L32_valid=500, L32_failed=0, L32_failure_reasons={}
 L64_valid=500, L64_failed=0, L64_failure_reasons={}
-Tc_bootstrap_mean=2.27355365, Tc_bootstrap_se_ddof1=0.00725485
-L32_peak_se_ddof1=0.00345233
-L64_peak_se_ddof1=0.00333484
-remainder_length_L32=[0], remainder_length_L64=[0]
+Tc_bootstrap_mean=2.27311584, Tc_bootstrap_se_ddof1=0.00743502
+L32_peak_se_ddof1=0.00358498
+L64_peak_se_ddof1=0.00318787
+circular_block_count=25, generated_rows=100000, truncated_rows=0
 
 block_length=8000
 attempts=500, valid_Tc=500, failed_Tc=0
 L32_valid=500, L32_failed=0, L32_failure_reasons={}
 L64_valid=500, L64_failed=0, L64_failure_reasons={}
-Tc_bootstrap_mean=2.27327727, Tc_bootstrap_se_ddof1=0.00734466
-L32_peak_se_ddof1=0.00316766
-L64_peak_se_ddof1=0.00332628
-remainder_length_L32=[4000], remainder_length_L64=[4000]
+Tc_bootstrap_mean=2.27281886, Tc_bootstrap_se_ddof1=0.00761892
+L32_peak_se_ddof1=0.00377431
+L64_peak_se_ddof1=0.00323909
+circular_block_count=13, generated_rows=104000, truncated_rows=4000
 
-Tc_se_mean=0.00713797
-Tc_se_relative_deviations=0.045331, 0.016374, 0.028957
+Tc_se_mean=0.00753049
+Tc_se_relative_deviations=0.000936, 0.012679, 0.011742
 Tc_sampling_error_stable=True
 This is sampling error only; it excludes finite-size extrapolation bias and five-point quadratic-fit bias.
