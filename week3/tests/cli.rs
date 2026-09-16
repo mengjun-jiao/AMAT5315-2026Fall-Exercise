@@ -30,6 +30,33 @@ fn run(out: &std::path::Path, seed: u64) -> assert_cmd::assert::Assert {
     .assert()
 }
 
+fn run_wolff(out: &std::path::Path) -> assert_cmd::assert::Assert {
+    let mut cmd = Command::cargo_bin("ising").unwrap();
+    cmd.args([
+        "--update",
+        "wolff",
+        "--l",
+        "2",
+        "--t-from",
+        "1",
+        "--t-to",
+        "2",
+        "--t-step",
+        "0.5",
+        "--discard",
+        "2",
+        "--measure",
+        "3",
+        "--every",
+        "2",
+        "--seed",
+        "2026",
+        "--out",
+    ])
+    .arg(out)
+    .assert()
+}
+
 #[test]
 fn grid_outputs_and_frames_have_contract_counts() {
     let dir = tempdir().unwrap();
@@ -67,7 +94,7 @@ fn same_seed_same_outputs_and_invalid_update_is_explicit() {
     let mut cmd = Command::cargo_bin("ising").unwrap();
     cmd.args([
         "--update",
-        "wolff",
+        "invalid",
         "--l",
         "2",
         "--t-from",
@@ -87,7 +114,7 @@ fn same_seed_same_outputs_and_invalid_update_is_explicit() {
     .arg(a.path())
     .assert()
     .code(2)
-    .stderr(predicates::str::contains("not implemented"));
+    .stderr(predicates::str::contains("metropolis or wolff"));
 
     let mut cmd = Command::cargo_bin("ising").unwrap();
     cmd.args([
@@ -138,4 +165,28 @@ fn same_seed_same_outputs_and_invalid_update_is_explicit() {
     .assert()
     .code(2)
     .stderr(predicates::str::contains("ordered"));
+}
+
+#[test]
+fn wolff_cli_writes_metadata_rows_and_cluster_sizes() {
+    let dir = tempdir().unwrap();
+    run_wolff(dir.path())
+        .success()
+        .stdout(predicates::str::contains("mean_cluster_size"));
+    let run: Value =
+        serde_json::from_str(&fs::read_to_string(dir.path().join("run.json")).unwrap()).unwrap();
+    assert_eq!(run["update"], "wolff");
+    assert_eq!(run["time_unit"], "cluster_flip");
+    assert_eq!(run["sample_every"], 1);
+    let rows: Vec<Value> = fs::read_to_string(dir.path().join("series.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(rows.len(), 9);
+    assert!(rows.iter().all(|row| row["cluster_size"]
+        .as_u64()
+        .is_some_and(|size| (1..=4).contains(&size))));
+    let frames = fs::read_to_string(dir.path().join("spins.jsonl")).unwrap();
+    assert_eq!(frames.lines().count(), 3);
 }

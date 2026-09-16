@@ -1,5 +1,5 @@
 use clap::Parser;
-use ising::{energy, magnetization, metropolis_sweep};
+use ising::{energy, magnetization, metropolis_sweep, wolff_cluster_flip};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use serde::Serialize;
@@ -55,8 +55,8 @@ fn invalid(message: &str) -> ! {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    if args.update != "metropolis" {
-        invalid("update must be metropolis; wolff is not implemented yet")
+    if args.update != "metropolis" && args.update != "wolff" {
+        invalid("update must be metropolis or wolff")
     }
     if args.l < 2 {
         invalid("l must be at least 2")
@@ -86,7 +86,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         measure: args.measure,
         seed: args.seed,
         sample_every: 1,
-        time_unit: "sweep",
+        time_unit: if args.update == "metropolis" {
+            "sweep"
+        } else {
+            "cluster_flip"
+        },
     };
     let mut run_file = BufWriter::new(File::create(args.out.join("run.json"))?);
     serde_json::to_writer_pretty(&mut run_file, &run)?;
@@ -99,26 +103,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let mut spins = vec![1i8; args.l * args.l];
     let mut rng = ChaCha8Rng::seed_from_u64(args.seed);
-    println!("T\tmean_abs_M\tacceptance_rate");
+    if args.update == "metropolis" {
+        println!("T\tmean_abs_M\tacceptance_rate");
+    } else {
+        println!("T\tmean_abs_M\tmean_cluster_size");
+    }
     let mut cumulative_sweep = 0usize;
     for &temperature in &t_grid {
         let mut accepted = 0usize;
         for _ in 0..args.discard {
-            accepted += metropolis_sweep(&mut spins, args.l, temperature, &mut rng);
+            if args.update == "metropolis" {
+                accepted += metropolis_sweep(&mut spins, args.l, temperature, &mut rng);
+            } else {
+                wolff_cluster_flip(&mut spins, args.l, temperature, &mut rng);
+            }
             cumulative_sweep += 1;
         }
         let mut abs_m_sum = 0.0;
+        let mut cluster_size_sum = 0usize;
         for local_sweep in 1..=args.measure {
-            accepted += metropolis_sweep(&mut spins, args.l, temperature, &mut rng);
+            let cluster_size = if args.update == "metropolis" {
+                accepted += metropolis_sweep(&mut spins, args.l, temperature, &mut rng);
+                0
+            } else {
+                wolff_cluster_flip(&mut spins, args.l, temperature, &mut rng)
+            };
+            cluster_size_sum += cluster_size;
             cumulative_sweep += 1;
             let m = magnetization(&spins);
             let e = energy(&spins, args.l) / (args.l * args.l) as f64;
             abs_m_sum += m.abs();
-            writeln!(
-                series,
-                "{{\"L\":{},\"T\":{:.6},\"sweep\":{},\"M\":{:.6},\"E\":{:.6}}}",
-                args.l, temperature, local_sweep, m, e
-            )?;
+            if args.update == "metropolis" {
+                writeln!(
+                    series,
+                    "{{\"L\":{},\"T\":{:.6},\"sweep\":{},\"M\":{:.6},\"E\":{:.6}}}",
+                    args.l, temperature, local_sweep, m, e
+                )?;
+            } else {
+                writeln!(series, "{{\"L\":{},\"T\":{:.6},\"sweep\":{},\"M\":{:.6},\"E\":{:.6},\"cluster_size\":{}}}", args.l, temperature, local_sweep, m, e, cluster_size)?;
+            }
             if let Some(output) = frames.as_mut() {
                 if local_sweep % args.every == 0 {
                     write!(
@@ -136,12 +159,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        let proposals = (args.discard + args.measure) * args.l * args.l;
-        println!(
-            "{temperature:.6}\t{:.6}\t{:.6}",
-            abs_m_sum / args.measure as f64,
-            accepted as f64 / proposals as f64
-        );
+        if args.update == "metropolis" {
+            let proposals = (args.discard + args.measure) * args.l * args.l;
+            println!(
+                "{temperature:.6}\t{:.6}\t{:.6}",
+                abs_m_sum / args.measure as f64,
+                accepted as f64 / proposals as f64
+            );
+        } else {
+            println!(
+                "{temperature:.6}\t{:.6}\t{:.6}",
+                abs_m_sum / args.measure as f64,
+                cluster_size_sum as f64 / args.measure as f64
+            );
+        }
     }
     Ok(())
 }
