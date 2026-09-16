@@ -300,7 +300,7 @@ def efficiency_analysis() -> None:
     axis.set_yscale("log")
     axis.set_xlabel("Temperature T")
     axis.set_ylabel("Work-normalized autocorrelation time")
-    axis.set_title("Spin-update work per effective abs(M) sample")
+    axis.set_title("Work-normalized autocorrelation time (L = 64)")
     axis.grid(alpha=0.25, which="both")
     axis.legend()
     figure.tight_layout()
