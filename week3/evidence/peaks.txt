@@ -1,0 +1,22 @@
+L=32 five-point fit:
+  T=2.25, chi=10.079484
+  T=2.30, chi=19.149853
+  T=2.35, chi=20.676178
+  T=2.40, chi=16.472679
+  T=2.45, chi=11.233285
+  fitted T_peak=2.34962343
+L=64 five-point fit:
+  T=2.20, chi=4.207532
+  T=2.25, chi=34.441703
+  T=2.30, chi=68.719073
+  T=2.35, chi=43.920706
+  T=2.40, chi=24.079859
+  fitted T_peak=2.31082003
+L=32 T=1.5 mean_abs_M=0.986233
+L=64 T=1.5 mean_abs_M=0.986474
+L=64 T=3.0 mean_abs_M=0.045345
+Tc_est=2.27201664
+reference_Tc=2.26919
+relative_error=0.00124566
+low_temperature_mean_abs_M_at_least_0.9=True
+critical_temperature_relative_error_below_2_percent=True
