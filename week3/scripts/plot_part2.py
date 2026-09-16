@@ -21,15 +21,28 @@ def magnetization_plot() -> None:
     data = merged_data(64)
     temperatures = np.array([data[key]["T"] for key in sorted(data)])
     magnetizations = np.array([mean_abs_m(data[key]) for key in sorted(data)])
-    theory = np.zeros_like(temperatures)
-    low_temperature = temperatures < TC
-    theory[low_temperature] = (
-        1 - np.sinh(2 / temperatures[low_temperature]) ** -4
+    # Use an independent dense grid so the analytic curve is not connected
+    # across Tc through the sparse simulation temperatures.
+    theory_below_tc = np.linspace(temperatures.min(), TC, 500, endpoint=False)
+    theory_below_tc = np.append(theory_below_tc, TC)
+    theory_values_below_tc = np.zeros_like(theory_below_tc)
+    below_tc = theory_below_tc < TC
+    theory_values_below_tc[below_tc] = (
+        1 - np.sinh(2 / theory_below_tc[below_tc]) ** -4
     ) ** (1 / 8)
+    theory_above_tc = np.linspace(TC, temperatures.max(), 250)
+    theory_values_above_tc = np.zeros_like(theory_above_tc)
 
     figure, axis = plt.subplots(figsize=(8, 5))
     axis.plot(temperatures, magnetizations, "o-", label="Metropolis, L = 64")
-    axis.plot(temperatures, theory, "--", label="Infinite lattice theory")
+    axis.plot(
+        theory_below_tc,
+        theory_values_below_tc,
+        "--",
+        color="tab:orange",
+        label="Infinite lattice theory",
+    )
+    axis.plot(theory_above_tc, theory_values_above_tc, "--", color="tab:orange")
     axis.axvline(TC, color="black", linestyle=":", label=f"Tc = {TC:.5f}")
     axis.set_xlabel("Temperature T")
     axis.set_ylabel("Mean absolute magnetization")
