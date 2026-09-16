@@ -245,10 +245,12 @@ The repository owner manually checked the Boltzmann, Part 2, Part 3, sampler
 comparison, work-normalized efficiency, and viewer images reported in the
 conversation. The three viewer PNGs are manual browser exports.
 
-The incognito-window check is **pending**; it is not claimed as passed. A full
-clean-clone reproduction from the top of this README has **not been executed**.
-The Extension and Neural Sampling Challenge are not complete and are not
-claimed here.
+The incognito-window check is **pending**; it is not claimed as passed. The full
+clean-clone reproduction from the top of this README was executed in an
+isolated temporary clone on 2026-09-16. The simulation, analysis, Rust test,
+and Clippy commands completed there; the generated data and build products
+were not copied back or committed. The Extension and Neural Sampling
+Challenge are not complete and are not claimed here.
 
 ## Repository and contract boundaries
 
@@ -290,5 +292,6 @@ cargo test
 ```
 
 After this preparation, follow the reproduction commands above in order. The
-clean-clone run is intentionally left as a future verification task rather
-than being reported as complete.
+clean-clone run described above is a completed local verification; repeat it
+in a new temporary directory when an independently fresh verification is
+needed.
