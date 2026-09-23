@@ -46,6 +46,11 @@ def main():
     image = Image.new("RGB", (1400, 720), "white")
     draw = ImageDraw.Draw(image)
     panels = [(80, 105, 610, 610), (730, 105, 1260, 610)]
+    common_velocity = max(
+        math.hypot(u, v)
+        for frame in [initial, final]
+        for u, v in zip(frame["u"], frame["v"])
+    )
     for panel, frame in zip(panels, [initial, final]):
         left, top, right, bottom = panel
         cell_width = (right - left) / n
@@ -59,8 +64,7 @@ def main():
                 y1 = int(bottom - row * cell_height + 1)
                 draw.rectangle((x0, y0, x1, y1), fill=vorticity_color(value))
         spacing = 4
-        max_velocity = max(math.hypot(u, v) for u, v in zip(frame["u"], frame["v"]))
-        arrow_scale = 0.06 * min(right - left, bottom - top) / max_velocity
+        arrow_scale = 0.06 * min(right - left, bottom - top) / common_velocity
         for row in range(0, n, spacing):
             for col in range(0, n, spacing):
                 index = row * n + col
