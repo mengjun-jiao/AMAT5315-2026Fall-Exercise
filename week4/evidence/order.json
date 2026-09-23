@@ -1,0 +1,18 @@
+{
+  "dt_errors": [
+    {
+      "dt": 0.4,
+      "relative_velocity_error": 0.0005986617291886088
+    },
+    {
+      "dt": 0.25,
+      "relative_velocity_error": 7.87989620814574e-05
+    },
+    {
+      "dt": 0.2,
+      "relative_velocity_error": 3.574223820158997e-05
+    }
+  ],
+  "fitted_slope": 4.104406178667275,
+  "error_reduction_0.4_to_0.2": 16.74941915534483
+}

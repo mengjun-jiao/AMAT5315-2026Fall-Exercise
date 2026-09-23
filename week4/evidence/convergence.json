@@ -1,0 +1,50 @@
+{
+  "grid_size": 128,
+  "viscosity": 0.004,
+  "final_time": 2.0,
+  "seed": 2026,
+  "k_min": 2,
+  "k_max": 6,
+  "method": "rk4",
+  "reference_dt": 0.0025,
+  "candidate_dt": [
+    0.02,
+    0.0125,
+    0.01
+  ],
+  "measured_relative_omega_errors": [
+    {
+      "dt": 0.02,
+      "relative_omega_error": 2.2376653278130793e-05
+    },
+    {
+      "dt": 0.0125,
+      "relative_omega_error": 3.344346869442787e-06
+    },
+    {
+      "dt": 0.01,
+      "relative_omega_error": 1.3625804616519173e-06
+    }
+  ],
+  "fitted_log_log_slope": 4.038589564966326,
+  "richardson_base_h": 0.01,
+  "richardson_estimated_error_at_h": 1.4033144488345863e-06,
+  "predicted_errors": [
+    {
+      "dt": 0.02,
+      "predicted_relative_error": 2.245303118135338e-05
+    },
+    {
+      "dt": 0.0125,
+      "predicted_relative_error": 3.426060666100064e-06
+    },
+    {
+      "dt": 0.01,
+      "predicted_relative_error": 1.4033144488345863e-06
+    }
+  ],
+  "threshold": 5e-06,
+  "selected_dt": 0.0125,
+  "selected_predicted_error": 3.426060666100064e-06,
+  "selected_measured_error": 3.344346869442787e-06
+}
