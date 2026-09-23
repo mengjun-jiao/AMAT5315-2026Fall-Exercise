@@ -32,6 +32,12 @@ def regression(values):
     return sum((x - xbar) * (y - ybar) for x, y in zip(xs, ys)) / sum((x - xbar) ** 2 for x in xs)
 
 
+def scientific(value):
+    exponent = int(math.floor(math.log10(value)))
+    coefficient = value / 10**exponent
+    return f"{coefficient:g}e{exponent:+d}"
+
+
 def main():
     EVIDENCE.mkdir(exist_ok=True)
     command = ["cargo", "run", "--quiet", "--manifest-path", str(ROOT / "week4" / "Cargo.toml"), "--bin", "line_accuracy_data"]
@@ -86,6 +92,16 @@ def main():
     draw.text((1125, 65), "Temporal convergence", fill="black", anchor="mm", font=font(20))
     draw.text((1125, 625), "dt (log scale)", fill="black", anchor="mm", font=font(16))
     draw.text((760, 350), "error", fill="black", anchor="mm", font=font(16))
+    for dt in [0.0025, 0.005, 0.01, 0.02]:
+        px, _ = map_xy(right_box, math.log(dt), ymin, (xmin, xmax), (ymin - 0.2, ymax + 0.2))
+        draw.line((px, right_box[3], px, right_box[3] + 7), fill="black", width=1)
+        draw.text((px, right_box[3] + 12), f"{dt:g}", fill="black", anchor="ma", font=font(12))
+    for exponent in [-10, -8, -6, -4, -2]:
+        value = 10**exponent
+        if ymin - 0.2 <= math.log(value) <= ymax + 0.2:
+            _, py = map_xy(right_box, xmin, math.log(value), (xmin, xmax), (ymin - 0.2, ymax + 0.2))
+            draw.line((right_box[0] - 7, py, right_box[0], py), fill="black", width=1)
+            draw.text((right_box[0] - 12, py), scientific(value), fill="black", anchor="rm", font=font(11))
     for index, (name, slope) in enumerate(slopes.items()):
         color = ["blue", "orange", "red", "green"][index]
         draw.line((820, 640 + index * 17, 845, 640 + index * 17), fill=color, width=3)

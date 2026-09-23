@@ -47,7 +47,7 @@ def label_axes(draw, box, xlabel, ylabel, title, xlim, ylim):
     left, top, right, bottom = box
     draw.rectangle(box, outline="black")
     draw.text(((left + right) // 2, bottom + 24), xlabel, fill="black", anchor="mm", font=font(16))
-    draw.text((left - 42, (top + bottom) // 2), ylabel, fill="black", anchor="mm", font=font(16))
+    draw.text((max(20, left - 42), (top + bottom) // 2), ylabel, fill="black", anchor="mm", font=font(16))
     draw.text(((left + right) // 2, top - 25), title, fill="black", anchor="mm", font=font(17))
     for value in [xlim[0], 0, xlim[1]]:
         px, _ = plot_xy(box, value, ylim[0], xlim, ylim)
@@ -107,8 +107,17 @@ def main():
             px, py = plot_xy(panels[0], real * dt, imaginary * dt, xlim, ylim)
             draw.ellipse((px - 3, py - 3, px + 3, py + 3), fill=color)
     label_axes(draw, panels[0], "Re(z)", "Im(z)", "Measured RK4 stability map", xlim, ylim)
-    draw.text((55, 580), "black Euler   orange midpoint   red RK4   cyan/magenta spectra", fill="black", font=font(12))
-    draw.text((55, 605), "RK4 crossings: real ≈ -2.785, imaginary ≈ ±2.83", fill="black", font=font(12))
+    legend = [("black", "Euler"), ("orange", "midpoint"), ("red", "RK4")]
+    x_position = 45
+    for color, label in legend:
+        draw.line((x_position, 610, x_position + 22, 610), fill=color, width=3)
+        draw.text((x_position + 28, 610), label, fill="black", anchor="lm", font=font(12))
+        x_position += 92
+    for color, label in [("cyan", "dt = 0.045"), ("magenta", "dt = 0.056")]:
+        draw.ellipse((x_position, 606, x_position + 8, 614), fill=color)
+        draw.text((x_position + 15, 610), label, fill="black", anchor="lm", font=font(12))
+        x_position += 105
+    draw.text((55, 642), "RK4 crossings: real ≈ -2.785, imaginary ≈ ±2.83", fill="black", font=font(12))
 
     for panel, dt in zip(panels[1:], [0.045, 0.056]):
         rows = profiles[dt]
