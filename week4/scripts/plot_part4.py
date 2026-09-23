@@ -1,4 +1,4 @@
-"""Plot Part 4 order and convergence results from audit JSON files."""
+"""Render compact Part 4 order and self-convergence figures."""
 
 import json
 import math
@@ -6,93 +6,88 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-
 ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = ROOT / "week4" / "evidence"
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
-def font(size):
-    return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
+def f(size):
+    return ImageFont.truetype(FONT, size)
 
 
 def point(box, x, y, xlim, ylim):
     left, top, right, bottom = box
-    return (int(left + (math.log(x) - math.log(xlim[0])) / (math.log(xlim[1]) - math.log(xlim[0])) * (right - left)), int(bottom - (math.log(y) - math.log(ylim[0])) / (math.log(ylim[1]) - math.log(ylim[0])) * (bottom - top)))
-
-
-def slope_and_intercept(points):
-    xs = [math.log(x) for x, _ in points]
-    ys = [math.log(y) for _, y in points]
-    x_bar, y_bar = sum(xs) / len(xs), sum(ys) / len(ys)
-    slope = sum((x - x_bar) * (y - y_bar) for x, y in zip(xs, ys)) / sum((x - x_bar) ** 2 for x in xs)
-    return slope, y_bar - slope * x_bar
+    return (int(left + (math.log(x) - math.log(xlim[0])) / (math.log(xlim[1]) - math.log(xlim[0])) * (right - left)),
+            int(bottom - (math.log(y) - math.log(ylim[0])) / (math.log(ylim[1]) - math.log(ylim[0])) * (bottom - top)))
 
 
 def axes(draw, box, title, xlabel, ylabel, x_ticks, y_ticks):
     left, top, right, bottom = box
     draw.rectangle(box, outline="black")
-    draw.text(((left + right) / 2, top - 26), title, fill="black", anchor="mm", font=font(19))
-    draw.text(((left + right) / 2, bottom + 28), xlabel, fill="black", anchor="mm", font=font(15))
-    draw.text((left + 5, (top + bottom) / 2), ylabel, fill="black", anchor="lm", font=font(14))
-    xlim = (min(x_ticks), max(x_ticks))
-    ylim = (min(y_ticks), max(y_ticks))
-    for value in x_ticks:
-        px, _ = point(box, value, ylim[0], xlim, ylim)
-        draw.line((px, bottom, px, bottom + 7), fill="black")
-        draw.text((px, bottom + 12), f"{value:g}", fill="black", anchor="ma", font=font(12))
-    for value in y_ticks:
-        _, py = point(box, xlim[0], value, xlim, ylim)
-        draw.line((left - 7, py, left, py), fill="black")
-        draw.text((left - 12, py), f"{value:.0e}", fill="black", anchor="rm", font=font(11))
+    draw.text(((left + right) / 2, top - 15), title, fill="black", anchor="mm", font=f(13))
+    draw.text(((left + right) / 2, bottom + 18), xlabel, fill="black", anchor="ma", font=f(10))
+    draw.multiline_text((left - 25, (top + bottom) / 2), ylabel.replace(" ", "\n"), fill="black", anchor="mm", align="center", spacing=0, font=f(8))
+    for value, label in x_ticks:
+        px, _ = point(box, value, y_ticks[0][0], (x_ticks[0][0], x_ticks[-1][0]), (y_ticks[0][0], y_ticks[-1][0]))
+        draw.text((px, bottom + 4), label, fill="black", anchor="ma", font=f(8))
+    for value, label in y_ticks:
+        _, py = point(box, x_ticks[0][0], value, (x_ticks[0][0], x_ticks[-1][0]), (y_ticks[0][0], y_ticks[-1][0]))
+        draw.text((left - 7, py), label, fill="black", anchor="rm", font=f(8))
 
 
-def draw_series(draw, box, points, xlim, ylim, colour, width=2):
-    draw.line([point(box, x, y, xlim, ylim) for x, y in points], fill=colour, width=width, joint="curve")
+def line(draw, box, values, xlim, ylim, color, width=2):
+    draw.line([point(box, x, y, xlim, ylim) for x, y in values], fill=color, width=width)
+
+
+def legend(draw, entries, x, y):
+    for index, (color, label) in enumerate(entries):
+        py = y + index * 14
+        draw.line((x, py, x + 15, py), fill=color, width=2)
+        draw.text((x + 19, py), label, fill="black", anchor="lm", font=f(8))
 
 
 def main():
     order = json.loads((EVIDENCE / "order.json").read_text())
     convergence = json.loads((EVIDENCE / "convergence.json").read_text())
-    image = Image.new("RGB", (1500, 700), "white")
+    image = Image.new("RGB", (1420, 505), "white")
     draw = ImageDraw.Draw(image)
-    order_points = [(item["dt"], item["relative_velocity_error"]) for item in order["dt_errors"]]
-    order_slope, order_intercept = slope_and_intercept(order_points)
-    order_y = [value for _, value in order_points]
-    order_box = (100, 105, 700, 570)
-    order_x = (min(x for x, _ in order_points), max(x for x, _ in order_points))
-    order_ylim = (min(order_y) * 0.5, max(order_y) * 2)
-    axes(draw, order_box, "Taylor-Green RK4 temporal order", "dt", "relative velocity error", [0.2, 0.25, 0.4], [1e-6, 1e-5, 1e-4, 1e-3])
-    draw_series(draw, order_box, order_points, order_x, order_ylim, "blue", 0)
-    for x, y in order_points:
-        px, py = point(order_box, x, y, order_x, order_ylim)
-        draw.ellipse((px - 6, py - 6, px + 6, py + 6), fill="blue")
-    fitted = [(order_x[0], math.exp(order_intercept) * order_x[0] ** order_slope), (order_x[1], math.exp(order_intercept) * order_x[1] ** order_slope)]
-    draw_series(draw, order_box, fitted, order_x, order_ylim, "red", 2)
-    draw.text((120, 600), f"Fitted slope = {order_slope:.3f}; storage scale ≈ 1e-6", fill="black", font=font(13))
-    draw.line((120, 635, 145, 635), fill="blue", width=3)
-    draw.text((155, 635), "measured errors", fill="black", anchor="lm", font=font(12))
-    draw.line((280, 635, 305, 635), fill="red", width=3)
-    draw.text((315, 635), "fitted log-log line", fill="black", anchor="lm", font=font(12))
 
-    convergence_points = [(item["dt"], item["relative_omega_error"]) for item in convergence["measured_relative_omega_errors"]]
-    convergence_slope, convergence_intercept = slope_and_intercept(convergence_points)
-    convergence_box = (800, 105, 1400, 570)
-    x_ticks = [0.01, 0.0125, 0.02]
-    y_values = [value for _, value in convergence_points] + [convergence["threshold"]]
-    convergence_ylim = (min(y_values) * 0.5, max(y_values) * 2)
-    axes(draw, convergence_box, "Random-flow RK4 self-convergence", "dt", "relative omega error", x_ticks, [1e-7, 1e-6, 1e-5, 1e-4])
-    for x, y in convergence_points:
-        px, py = point(convergence_box, x, y, (min(x_ticks), max(x_ticks)), convergence_ylim)
-        colour = "red" if x == convergence["selected_dt"] else "blue"
-        draw.ellipse((px - 6, py - 6, px + 6, py + 6), fill=colour)
-    fitted = [(min(x_ticks), math.exp(convergence_intercept) * min(x_ticks) ** convergence_slope), (max(x_ticks), math.exp(convergence_intercept) * max(x_ticks) ** convergence_slope)]
-    draw_series(draw, convergence_box, fitted, (min(x_ticks), max(x_ticks)), convergence_ylim, "black", 2)
-    threshold_y = point(convergence_box, min(x_ticks), convergence["threshold"], (min(x_ticks), max(x_ticks)), convergence_ylim)[1]
-    draw.line((convergence_box[0], threshold_y, convergence_box[2], threshold_y), fill="orange", width=2)
-    draw.text((820, 600), f"Fitted slope = {convergence_slope:.3f}; orange threshold = 5e-6", fill="black", font=font(13))
-    draw.text((820, 635), f"Selected dt = {convergence['selected_dt']:g} (red point)", fill="black", font=font(13))
-    image.crop((0, 0, 750, 700)).save(EVIDENCE / "order.png")
-    image.crop((750, 0, 1500, 700)).save(EVIDENCE / "convergence.png")
+    order_values = [(item["dt"], item["relative_velocity_error"]) for item in order["dt_errors"]]
+    xs = [math.log(x) for x, _ in order_values]
+    ys = [math.log(y) for _, y in order_values]
+    slope = sum((x - sum(xs) / len(xs)) * (y - sum(ys) / len(ys)) for x, y in zip(xs, ys)) / sum((x - sum(xs) / len(xs)) ** 2 for x in xs)
+    intercept = sum(ys) / len(ys) - slope * sum(xs) / len(xs)
+    order_box = (65, 55, 655, 365)
+    order_lim = (0.19, 0.42), (1e-5, 2e-3)
+    axes(draw, order_box, "Taylor-Green RK4 temporal order", "dt", "relative velocity error", [(0.2, "0.2"), (0.25, "0.25"), (0.4, "0.4")], [(1e-5, "1e-5"), (1e-4, "1e-4"), (1e-3, "1e-3")])
+    line(draw, order_box, order_values, *order_lim, "#1769aa", 1)
+    for x, y in order_values:
+        px, py = point(order_box, x, y, *order_lim)
+        draw.ellipse((px - 4, py - 4, px + 4, py + 4), fill="#1769aa")
+    fitted = [(order_lim[0][0], math.exp(intercept) * order_lim[0][0] ** slope), (order_lim[0][1], math.exp(intercept) * order_lim[0][1] ** slope)]
+    line(draw, order_box, fitted, *order_lim, "#b00020", 2)
+    legend(draw, [("#1769aa", "measured"), ("#b00020", f"fit, q = {slope:.2f}")], 435, 90)
+
+    conv_values = [(item["dt"], item["relative_omega_error"]) for item in convergence["measured_relative_omega_errors"]]
+    xs = [math.log(x) for x, _ in conv_values]
+    ys = [math.log(y) for _, y in conv_values]
+    conv_slope = sum((x - sum(xs) / len(xs)) * (y - sum(ys) / len(ys)) for x, y in zip(xs, ys)) / sum((x - sum(xs) / len(xs)) ** 2 for x in xs)
+    conv_intercept = sum(ys) / len(ys) - conv_slope * sum(xs) / len(xs)
+    conv_box = (765, 55, 1355, 365)
+    conv_lim = (0.0095, 0.021), (5e-7, 5e-5)
+    axes(draw, conv_box, "Random-flow RK4 self-convergence", "dt", "relative vorticity error", [(0.01, "0.01"), (0.0125, "0.0125"), (0.02, "0.02")], [(1e-6, "1e-6"), (1e-5, "1e-5"), (1e-4, "1e-4")])
+    for x, y in conv_values:
+        px, py = point(conv_box, x, y, *conv_lim)
+        color = "#d01818" if x == convergence["selected_dt"] else "#1769aa"
+        draw.ellipse((px - 4, py - 4, px + 4, py + 4), fill=color)
+    fitted = [(conv_lim[0][0], math.exp(conv_intercept) * conv_lim[0][0] ** conv_slope), (conv_lim[0][1], math.exp(conv_intercept) * conv_lim[0][1] ** conv_slope)]
+    line(draw, conv_box, fitted, *conv_lim, "#333333", 2)
+    threshold_y = point(conv_box, conv_lim[0][0], convergence["threshold"], *conv_lim)[1]
+    for x in range(conv_box[0], conv_box[2], 12):
+        draw.line((x, threshold_y, min(x + 7, conv_box[2]), threshold_y), fill="#df7f00", width=1)
+    legend(draw, [("#333333", f"fit, q = {conv_slope:.3f}"), ("#df7f00", "threshold = 5e-6"), ("#d01818", "selected dt")], 1040, 90)
+    image.crop((0, 0, 710, 420)).save(EVIDENCE / "order.png", dpi=(140, 140))
+    image.crop((710, 0, 1420, 420)).save(EVIDENCE / "convergence.png", dpi=(140, 140))
 
 
 if __name__ == "__main__":

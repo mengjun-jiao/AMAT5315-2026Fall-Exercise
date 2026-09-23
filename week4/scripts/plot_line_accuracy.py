@@ -1,4 +1,4 @@
-"""Render compact line-accuracy evidence from the Rust data producer."""
+"""Render compact pulse-accuracy and temporal-convergence evidence."""
 
 import io
 import math
@@ -9,35 +9,47 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = ROOT / "week4" / "evidence"
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
-def font(size):
-    return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
+def f(size):
+    return ImageFont.truetype(FONT, size)
 
 
-def map_xy(box, x, y, xlim, ylim):
+def xy(box, x, y, xlim, ylim):
     left, top, right, bottom = box
     return (int(left + (x - xlim[0]) / (xlim[1] - xlim[0]) * (right - left)),
             int(bottom - (y - ylim[0]) / (ylim[1] - ylim[0]) * (bottom - top)))
 
 
+def logxy(box, x, y, xlim, ylim):
+    return xy(box, math.log(x), math.log(y), (math.log(xlim[0]), math.log(xlim[1])), (math.log(ylim[0]), math.log(ylim[1])))
+
+
 def regression(values):
-    xs = [math.log(item[0]) for item in values]
-    ys = [math.log(item[1]) for item in values]
-    xbar, ybar = sum(xs) / len(xs), sum(ys) / len(ys)
-    return sum((x - xbar) * (y - ybar) for x, y in zip(xs, ys)) / sum((x - xbar) ** 2 for x in xs)
+    xs = [math.log(x) for x, _ in values]
+    ys = [math.log(y) for _, y in values]
+    xb, yb = sum(xs) / len(xs), sum(ys) / len(ys)
+    slope = sum((x - xb) * (y - yb) for x, y in zip(xs, ys)) / sum((x - xb) ** 2 for x in xs)
+    return slope, yb - slope * xb
 
 
-def scientific(value):
-    return f"{value:.0e}".replace("e-0", "e-").replace("e+0", "e+")
-
-
-def draw_axes(draw, box, xlabel, ylabel, title):
+def axes(draw, box, title, xlabel, ylabel):
     left, top, right, bottom = box
     draw.rectangle(box, outline="black")
-    draw.text(((left + right) / 2, top - 18), title, fill="black", anchor="mm", font=font(16))
-    draw.text(((left + right) / 2, bottom + 25), xlabel, fill="black", anchor="ma", font=font(14))
-    draw.text((left - 42, (top + bottom) / 2), ylabel, fill="black", anchor="mm", font=font(14))
+    draw.text(((left + right) / 2, top - 16), title, fill="black", anchor="mm", font=f(14))
+    draw.text(((left + right) / 2, bottom + 19), xlabel, fill="black", anchor="ma", font=f(10))
+    draw.multiline_text((left - 25, (top + bottom) / 2), ylabel.replace(" ", "\n"), fill="black", anchor="mm", align="center", spacing=0, font=f(9))
+
+
+def legend(draw, entries, x, y, columns=1):
+    for index, (color, label) in enumerate(entries):
+        col = index % columns
+        row = index // columns
+        px = x + col * 190
+        py = y + row * 14
+        draw.line((px, py, px + 15, py), fill=color, width=2)
+        draw.text((px + 19, py), label, fill="black", anchor="lm", font=f(8))
 
 
 def main():
@@ -56,7 +68,7 @@ def main():
     print("Pulse propagation maximum absolute errors:")
     for name, value in errors.items():
         print(f"  {name}: {value:.8e}")
-    slopes = {name: regression(values) for name, values in convergence.items()}
+    slopes = {name: regression(values)[0] for name, values in convergence.items()}
     print("\nTemporal convergence errors and fitted slopes:")
     print("Method                  dt          max_error")
     for name, values in convergence.items():
@@ -64,62 +76,54 @@ def main():
             print(f"{name:22s} {dt:8.5f}   {value:.8e}")
         print(f"{name:22s} fitted slope = {slopes[name]:.6f}")
 
-    image = Image.new("RGB", (1280, 570), "white")
+    image = Image.new("RGB", (1330, 505), "white")
     draw = ImageDraw.Draw(image)
-    left_box, right_box = (70, 62, 585, 390), (690, 62, 1205, 390)
+    left_box, right_box = (58, 55, 625, 365), (700, 55, 1270, 365)
     colors = {"RK4 Fourier": "#1769aa", "RK4 centered finite difference": "#e07a00", "Euler Fourier": "#16803c", "Exact solution": "black"}
-    y_values = [row[2] for rows in profiles.values() for row in rows] + [row[3] for row in profiles["RK4 Fourier"]]
-    ylim = (min(y_values) - 0.03, max(y_values) + 0.03)
-    xlim = (0, 2 * math.pi)
-    draw_axes(draw, left_box, "x", "u", "Pulse propagation at t = 2π")
+    all_y = [row[2] for rows in profiles.values() for row in rows] + [row[3] for row in profiles["RK4 Fourier"]]
+    ylim = (min(all_y) - 0.03, max(all_y) + 0.03)
+    axes(draw, left_box, "Pulse propagation at t = 2π", "x", "u")
     for name, rows in profiles.items():
-        points = [map_xy(left_box, row[1], row[2], xlim, ylim) for row in rows]
+        points = [xy(left_box, row[1], row[2], (0, 2 * math.pi), ylim) for row in rows]
         draw.line(points, fill=colors[name], width=2, joint="curve")
-    exact = [map_xy(left_box, row[1], row[3], xlim, ylim) for row in profiles["RK4 Fourier"]]
-    for start in range(0, len(exact) - 1, 2):
-        draw.line((exact[start], exact[start + 1]), fill="black", width=2)
+    exact = [xy(left_box, row[1], row[3], (0, 2 * math.pi), ylim) for row in profiles["RK4 Fourier"]]
+    for i in range(0, len(exact) - 1, 2):
+        draw.line((exact[i], exact[i + 1]), fill="black", width=2)
     for value, label in [(0, "0"), (math.pi / 2, "π/2"), (math.pi, "π"), (3 * math.pi / 2, "3π/2"), (2 * math.pi, "2π")]:
-        px, _ = map_xy(left_box, value, ylim[0], xlim, ylim)
-        draw.text((px, left_box[3] + 7), label, fill="black", anchor="ma", font=font(11))
+        px, _ = xy(left_box, value, ylim[0], (0, 2 * math.pi), ylim)
+        draw.text((px, left_box[3] + 5), label, fill="black", anchor="ma", font=f(9))
     for value in [0, 0.5, 1.0]:
-        _, py = map_xy(left_box, 0, value, xlim, ylim)
-        draw.text((left_box[0] - 7, py), f"{value:g}", fill="black", anchor="rm", font=font(11))
-    legend = [(colors[name], name) for name in colors]
-    for index, (color, name) in enumerate(legend):
-        x, y = 95 + (index % 2) * 235, 425 + (index // 2) * 22
-        draw.line((x, y, x + 20, y), fill=color, width=3)
-        draw.text((x + 27, y), name, fill="black", anchor="lm", font=font(10))
+        _, py = xy(left_box, 0, value, (0, 2 * math.pi), ylim)
+        draw.text((left_box[0] - 7, py), str(value), fill="black", anchor="rm", font=f(8))
+    legend(draw, [(colors[name], name) for name in colors], 75, 115, columns=1)
 
-    xmin, xmax = math.log(0.0025), math.log(0.02)
-    ymin = min(math.log(value) for values in convergence.values() for _, value in values)
-    ymax = max(math.log(value) for values in convergence.values() for _, value in values)
-    right_ylim = (ymin - 0.25, ymax + 0.25)
-    draw_axes(draw, right_box, "dt", "error", "Temporal convergence")
-    colors_conv = ["#1769aa", "#e07a00", "#b00020", "#16803c"]
-    for index, (name, values) in enumerate(convergence.items()):
-        color = colors_conv[index]
-        points = [map_xy(right_box, math.log(dt), math.log(value), (xmin, xmax), right_ylim) for dt, value in values]
+    xlim = (0.0025, 0.02)
+    values = [value for rows in convergence.values() for _, value in rows]
+    ylim_log = (min(values) * 0.5, max(values) * 2)
+    axes(draw, right_box, "Temporal convergence", "dt", "maximum error")
+    conv_colors = ["#1769aa", "#e07a00", "#b00020", "#16803c"]
+    entries = []
+    for index, (name, values_for_method) in enumerate(convergence.items()):
+        color = conv_colors[index]
+        points = [logxy(right_box, dt, value, xlim, ylim_log) for dt, value in values_for_method]
         draw.line(points, fill=color, width=2)
         for px, py in points:
-            draw.ellipse((px - 4, py - 4, px + 4, py + 4), fill=color)
-        slope = slopes[name]
-        x0, x1 = xmin, xmax
-        y0 = math.log(values[0][1]) + slope * (x0 - math.log(values[0][0]))
-        y1 = math.log(values[0][1]) + slope * (x1 - math.log(values[0][0]))
-        draw.line((map_xy(right_box, x0, y0, (xmin, xmax), right_ylim), map_xy(right_box, x1, y1, (xmin, xmax), right_ylim)), fill=color, width=1)
+            draw.ellipse((px - 3, py - 3, px + 3, py + 3), fill=color)
+        slope, intercept = regression(values_for_method)
+        line_points = [logxy(right_box, dt, math.exp(intercept) * dt**slope, xlim, ylim_log) for dt in xlim]
+        draw.line(line_points, fill=color, width=1)
+        short = {"Forward Euler": "Euler", "Midpoint": "midpoint", "RK4": "RK4", "EqualWeightFourStage": "equal-weight"}[name]
+        entries.append((color, f"{short}, q = {slope:.2f}"))
     for dt in [0.0025, 0.005, 0.01, 0.02]:
-        px, _ = map_xy(right_box, math.log(dt), right_ylim[0], (xmin, xmax), right_ylim)
-        draw.text((px, right_box[3] + 7), f"{dt:g}", fill="black", anchor="ma", font=font(11))
+        px, _ = logxy(right_box, dt, ylim_log[0], xlim, ylim_log)
+        draw.text((px, right_box[3] + 5), f"{dt:g}", fill="black", anchor="ma", font=f(9))
     for exponent in [-10, -8, -6, -4, -2]:
         value = 10**exponent
-        if right_ylim[0] <= math.log(value) <= right_ylim[1]:
-            _, py = map_xy(right_box, xmin, math.log(value), (xmin, xmax), right_ylim)
-            draw.text((right_box[0] - 8, py), scientific(value), fill="black", anchor="rm", font=font(10))
-    for index, (name, slope) in enumerate(slopes.items()):
-        x, y = 720 + (index % 2) * 220, 425 + (index // 2) * 22
-        draw.line((x, y, x + 18, y), fill=colors_conv[index], width=3)
-        draw.text((x + 24, y), f"{name}: slope {slope:.2f}", fill="black", anchor="lm", font=font(10))
-    image.save(EVIDENCE / "line-accuracy.png", dpi=(180, 180))
+        if ylim_log[0] <= value <= ylim_log[1]:
+            _, py = logxy(right_box, xlim[0], value, xlim, ylim_log)
+            draw.text((right_box[0] - 7, py), f"1e{exponent:+d}", fill="black", anchor="rm", font=f(8))
+    legend(draw, entries, 720, 112, columns=1)
+    image.crop((0, 0, image.width, 405)).save(EVIDENCE / "line-accuracy.png", dpi=(140, 140))
 
 
 if __name__ == "__main__":
