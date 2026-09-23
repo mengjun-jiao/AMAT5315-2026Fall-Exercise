@@ -1,8 +1,7 @@
 use std::f64::consts::PI;
 use std::process::exit;
 use week4::field_io::field_json;
-use week4::fluid::{energy, spectrum_to_real, vorticity_to_velocity};
-use week4::Complex;
+use week4::fluid::random_velocity;
 
 fn usage_error(message: &str) -> ! {
     eprintln!("error: {message}");
@@ -74,48 +73,11 @@ fn main() {
             if k_min == 0 || k_min > k_max || k_max > n / 3 {
                 usage_error("require 0 < k-min <= k-max <= n/3");
             }
-            let mut state = seed;
-            let mut omega_hat = vec![Complex::new(0.0, 0.0); n * n];
-            for kx in -(k_max as isize)..=(k_max as isize) {
-                for ky in -(k_max as isize)..=(k_max as isize) {
-                    let radius = ((kx * kx + ky * ky) as f64).sqrt();
-                    if radius < k_min as f64
-                        || radius > k_max as f64
-                        || (kx == 0 && ky == 0)
-                        || kx < 0
-                        || (kx == 0 && ky < 0)
-                    {
-                        continue;
-                    }
-                    let phase = 2.0 * PI * next_unit(&mut state);
-                    let index = (ky.rem_euclid(n as isize) as usize) * n
-                        + kx.rem_euclid(n as isize) as usize;
-                    let partner = ((-ky).rem_euclid(n as isize) as usize) * n
-                        + (-kx).rem_euclid(n as isize) as usize;
-                    omega_hat[index] = Complex::new(phase.cos(), phase.sin());
-                    omega_hat[partner] = Complex::new(phase.cos(), -phase.sin());
-                }
-            }
-            let omega = spectrum_to_real(&omega_hat, n);
-            let (mut u, mut v) = vorticity_to_velocity(&omega, n);
-            let scale = (0.5 / energy(&u, &v)).sqrt();
-            for value in &mut u {
-                *value *= scale;
-            }
-            for value in &mut v {
-                *value *= scale;
-            }
+            let (u, v) = random_velocity(n, seed, k_min, k_max);
             let k_band = format!("{{\"k_min\":{k_min},\"k_max\":{k_max}}}");
             (u, v, seed, k_band, "random".to_owned())
         }
         _ => usage_error("case must be taylor-green or random"),
     };
     println!("{}", field_json(&case_name, n, seed, &k_band, &u, &v));
-}
-
-fn next_unit(state: &mut u64) -> f64 {
-    *state = state
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    ((*state >> 11) as f64) / ((1u64 << 53) as f64)
 }

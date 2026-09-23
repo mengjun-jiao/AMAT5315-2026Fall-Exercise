@@ -521,6 +521,74 @@ pub mod fluid {
         spectrum_to_real(&spectrum, n)
     }
 
+    pub fn centered_dx(values: &[f64], n: usize) -> Vec<f64> {
+        centered_derivative(values, n, 1)
+    }
+
+    pub fn centered_dy(values: &[f64], n: usize) -> Vec<f64> {
+        centered_derivative(values, n, 2)
+    }
+
+    pub fn centered_dxx(values: &[f64], n: usize) -> Vec<f64> {
+        centered_derivative(values, n, 3)
+    }
+
+    pub fn centered_dyy(values: &[f64], n: usize) -> Vec<f64> {
+        centered_derivative(values, n, 4)
+    }
+
+    pub fn centered_dxdy(values: &[f64], n: usize) -> Vec<f64> {
+        let dx = centered_dx(values, n);
+        centered_dy(&dx, n)
+    }
+
+    pub fn centered_laplacian(values: &[f64], n: usize) -> Vec<f64> {
+        let dxx = centered_dxx(values, n);
+        let dyy = centered_dyy(values, n);
+        dxx.iter().zip(dyy).map(|(&x, y)| x + y).collect()
+    }
+
+    pub fn random_velocity(
+        n: usize,
+        seed: u64,
+        k_min: usize,
+        k_max: usize,
+    ) -> (Vec<f64>, Vec<f64>) {
+        assert!(k_min > 0 && k_min <= k_max && k_max <= n / 3);
+        let mut state = seed;
+        let mut omega_hat = vec![Complex::new(0.0, 0.0); n * n];
+        for kx in -(k_max as isize)..=(k_max as isize) {
+            for ky in -(k_max as isize)..=(k_max as isize) {
+                let radius = ((kx * kx + ky * ky) as f64).sqrt();
+                if radius < k_min as f64
+                    || radius > k_max as f64
+                    || (kx == 0 && ky == 0)
+                    || kx < 0
+                    || (kx == 0 && ky < 0)
+                {
+                    continue;
+                }
+                let phase = 2.0 * PI * next_unit(&mut state);
+                let index =
+                    (ky.rem_euclid(n as isize) as usize) * n + kx.rem_euclid(n as isize) as usize;
+                let partner = ((-ky).rem_euclid(n as isize) as usize) * n
+                    + (-kx).rem_euclid(n as isize) as usize;
+                omega_hat[index] = Complex::new(phase.cos(), phase.sin());
+                omega_hat[partner] = Complex::new(phase.cos(), -phase.sin());
+            }
+        }
+        let omega = spectrum_to_real(&omega_hat, n);
+        let (mut u, mut v) = vorticity_to_velocity(&omega, n);
+        let scale = (0.5 / energy(&u, &v)).sqrt();
+        for value in &mut u {
+            *value *= scale;
+        }
+        for value in &mut v {
+            *value *= scale;
+        }
+        (u, v)
+    }
+
     fn derivative(values: &[f64], n: usize, x: bool, y: bool) -> Vec<f64> {
         spectrum_to_real(
             &multiply_by_wavenumber(&real_to_spectrum(values, n), n, x, y),
@@ -549,6 +617,32 @@ pub mod fluid {
                 Complex::new(-k * coefficient.im, k * coefficient.re)
             })
             .collect()
+    }
+
+    fn centered_derivative(values: &[f64], n: usize, order: usize) -> Vec<f64> {
+        assert_eq!(values.len(), n * n);
+        let dx = 2.0 * PI / n as f64;
+        let at = |row: usize, col: usize| values[(row % n) * n + col % n];
+        (0..n * n)
+            .map(|index| {
+                let row = index / n;
+                let col = index % n;
+                match order {
+                    1 => (at(row, col + 1) - at(row, col + n - 1)) / (2.0 * dx),
+                    2 => (at(row + 1, col) - at(row + n - 1, col)) / (2.0 * dx),
+                    3 => (at(row, col + 1) - 2.0 * at(row, col) + at(row, col + n - 1)) / (dx * dx),
+                    4 => (at(row + 1, col) - 2.0 * at(row, col) + at(row + n - 1, col)) / (dx * dx),
+                    _ => unreachable!(),
+                }
+            })
+            .collect()
+    }
+
+    fn next_unit(state: &mut u64) -> f64 {
+        *state = state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        ((*state >> 11) as f64) / ((1u64 << 53) as f64)
     }
 
     fn velocity_from_spectrum(omega_hat: &[Complex], n: usize) -> (Vec<Complex>, Vec<Complex>) {
@@ -742,6 +836,28 @@ pub mod fluid {
             assert!((energy(&recovered_u, &recovered_v) - 0.25).abs() < 1e-12);
             assert!((enstrophy(&omega) - 0.5).abs() < 1e-12);
             assert!(advection < 1e-11);
+        }
+
+        #[test]
+        fn random_field_is_independent_of_grid_resolution() {
+            let (u64, v64) = random_velocity(64, 2026, 2, 6);
+            let (u128, v128) = random_velocity(128, 2026, 2, 6);
+            let omega64 = velocity_to_vorticity(&u64, &v64, 64);
+            let omega128 = velocity_to_vorticity(&u128, &v128, 128);
+            let mut u_error: f64 = 0.0;
+            let mut v_error: f64 = 0.0;
+            let mut omega_error: f64 = 0.0;
+            for row in 0..64 {
+                for col in 0..64 {
+                    let i64 = row * 64 + col;
+                    let i128 = (2 * row) * 128 + 2 * col;
+                    u_error = u_error.max((u64[i64] - u128[i128]).abs());
+                    v_error = v_error.max((v64[i64] - v128[i128]).abs());
+                    omega_error = omega_error.max((omega64[i64] - omega128[i128]).abs());
+                }
+            }
+            println!("Random cross-resolution errors: u={u_error:.3e}, v={v_error:.3e}, omega={omega_error:.3e}");
+            assert!(u_error < 1e-13 && v_error < 1e-13 && omega_error < 1e-12);
         }
     }
 }
