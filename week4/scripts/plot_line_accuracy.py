@@ -1,4 +1,4 @@
-"""Render Part 1 line-accuracy evidence using data emitted by Rust."""
+"""Render compact line-accuracy evidence from the Rust data producer."""
 
 import io
 import math
@@ -17,12 +17,8 @@ def font(size):
 
 def map_xy(box, x, y, xlim, ylim):
     left, top, right, bottom = box
-    return (int(left + (x - xlim[0]) / (xlim[1] - xlim[0]) * (right - left)), int(bottom - (y - ylim[0]) / (ylim[1] - ylim[0]) * (bottom - top)))
-
-
-def line(draw, points, color, width=2):
-    if len(points) > 1:
-        draw.line(points, fill=color, width=width, joint="curve")
+    return (int(left + (x - xlim[0]) / (xlim[1] - xlim[0]) * (right - left)),
+            int(bottom - (y - ylim[0]) / (ylim[1] - ylim[0]) * (bottom - top)))
 
 
 def regression(values):
@@ -33,9 +29,15 @@ def regression(values):
 
 
 def scientific(value):
-    exponent = int(math.floor(math.log10(value)))
-    coefficient = value / 10**exponent
-    return f"{coefficient:g}e{exponent:+d}"
+    return f"{value:.0e}".replace("e-0", "e-").replace("e+0", "e+")
+
+
+def draw_axes(draw, box, xlabel, ylabel, title):
+    left, top, right, bottom = box
+    draw.rectangle(box, outline="black")
+    draw.text(((left + right) / 2, top - 18), title, fill="black", anchor="mm", font=font(16))
+    draw.text(((left + right) / 2, bottom + 25), xlabel, fill="black", anchor="ma", font=font(14))
+    draw.text((left - 42, (top + bottom) / 2), ylabel, fill="black", anchor="mm", font=font(14))
 
 
 def main():
@@ -43,8 +45,8 @@ def main():
     command = ["cargo", "run", "--quiet", "--manifest-path", str(ROOT / "week4" / "Cargo.toml"), "--bin", "line_accuracy_data"]
     output = subprocess.check_output(command, cwd=ROOT, text=True)
     profiles, errors, convergence = {}, {}, {}
-    for line_text in io.StringIO(output):
-        fields = line_text.rstrip().split(",")
+    for text in io.StringIO(output):
+        fields = text.rstrip().split(",")
         if fields[0] == "PROFILE":
             errors[fields[1]] = float(fields[2])
         elif fields[0] == "PROFILE_VALUE":
@@ -62,52 +64,62 @@ def main():
             print(f"{name:22s} {dt:8.5f}   {value:.8e}")
         print(f"{name:22s} fitted slope = {slopes[name]:.6f}")
 
-    image = Image.new("RGB", (1500, 700), "white")
+    image = Image.new("RGB", (1280, 570), "white")
     draw = ImageDraw.Draw(image)
-    left_box, right_box = (80, 105, 710, 590), (810, 105, 1440, 590)
-    colors = {"RK4 Fourier": "blue", "RK4 centered finite difference": "orange", "Euler Fourier": "green", "Exact solution": "black"}
+    left_box, right_box = (70, 62, 585, 390), (690, 62, 1205, 390)
+    colors = {"RK4 Fourier": "#1769aa", "RK4 centered finite difference": "#e07a00", "Euler Fourier": "#16803c", "Exact solution": "black"}
     y_values = [row[2] for rows in profiles.values() for row in rows] + [row[3] for row in profiles["RK4 Fourier"]]
     ylim = (min(y_values) - 0.03, max(y_values) + 0.03)
+    xlim = (0, 2 * math.pi)
+    draw_axes(draw, left_box, "x", "u", "Pulse propagation at t = 2π")
     for name, rows in profiles.items():
-        line(draw, [map_xy(left_box, row[1], row[2], (0, 2 * math.pi), ylim) for row in rows], colors[name])
-    line(draw, [map_xy(left_box, row[1], row[3], (0, 2 * math.pi), ylim) for row in profiles["RK4 Fourier"]], "black")
-    draw.rectangle(left_box, outline="black")
-    draw.text((395, 65), "Pulse propagation at t = 2π", fill="black", anchor="mm", font=font(20))
-    draw.text((395, 625), "x", fill="black", anchor="mm", font=font(16))
-    draw.text((30, 350), "u", fill="black", anchor="mm", font=font(16))
-    for index, (name, color) in enumerate(colors.items()):
-        draw.line((100, 640 + index * 17, 125, 640 + index * 17), fill=color, width=3)
-        draw.text((135, 640 + index * 17), name, fill="black", anchor="lm", font=font(12))
+        points = [map_xy(left_box, row[1], row[2], xlim, ylim) for row in rows]
+        draw.line(points, fill=colors[name], width=2, joint="curve")
+    exact = [map_xy(left_box, row[1], row[3], xlim, ylim) for row in profiles["RK4 Fourier"]]
+    for start in range(0, len(exact) - 1, 2):
+        draw.line((exact[start], exact[start + 1]), fill="black", width=2)
+    for value, label in [(0, "0"), (math.pi / 2, "π/2"), (math.pi, "π"), (3 * math.pi / 2, "3π/2"), (2 * math.pi, "2π")]:
+        px, _ = map_xy(left_box, value, ylim[0], xlim, ylim)
+        draw.text((px, left_box[3] + 7), label, fill="black", anchor="ma", font=font(11))
+    for value in [0, 0.5, 1.0]:
+        _, py = map_xy(left_box, 0, value, xlim, ylim)
+        draw.text((left_box[0] - 7, py), f"{value:g}", fill="black", anchor="rm", font=font(11))
+    legend = [(colors[name], name) for name in colors]
+    for index, (color, name) in enumerate(legend):
+        x, y = 95 + (index % 2) * 235, 425 + (index // 2) * 22
+        draw.line((x, y, x + 20, y), fill=color, width=3)
+        draw.text((x + 27, y), name, fill="black", anchor="lm", font=font(10))
 
     xmin, xmax = math.log(0.0025), math.log(0.02)
     ymin = min(math.log(value) for values in convergence.values() for _, value in values)
     ymax = max(math.log(value) for values in convergence.values() for _, value in values)
-    draw.rectangle(right_box, outline="black")
+    right_ylim = (ymin - 0.25, ymax + 0.25)
+    draw_axes(draw, right_box, "dt", "error", "Temporal convergence")
+    colors_conv = ["#1769aa", "#e07a00", "#b00020", "#16803c"]
     for index, (name, values) in enumerate(convergence.items()):
-        color = ["blue", "orange", "red", "green"][index]
-        points = [map_xy(right_box, math.log(dt), math.log(value), (xmin, xmax), (ymin - 0.2, ymax + 0.2)) for dt, value in values]
-        line(draw, points, color)
-        for point in points:
-            draw.ellipse((point[0] - 4, point[1] - 4, point[0] + 4, point[1] + 4), fill=color)
-    draw.text((1125, 65), "Temporal convergence", fill="black", anchor="mm", font=font(20))
-    draw.text((1125, 625), "dt (log scale)", fill="black", anchor="mm", font=font(16))
-    draw.text((760, 350), "error", fill="black", anchor="mm", font=font(16))
+        color = colors_conv[index]
+        points = [map_xy(right_box, math.log(dt), math.log(value), (xmin, xmax), right_ylim) for dt, value in values]
+        draw.line(points, fill=color, width=2)
+        for px, py in points:
+            draw.ellipse((px - 4, py - 4, px + 4, py + 4), fill=color)
+        slope = slopes[name]
+        x0, x1 = xmin, xmax
+        y0 = math.log(values[0][1]) + slope * (x0 - math.log(values[0][0]))
+        y1 = math.log(values[0][1]) + slope * (x1 - math.log(values[0][0]))
+        draw.line((map_xy(right_box, x0, y0, (xmin, xmax), right_ylim), map_xy(right_box, x1, y1, (xmin, xmax), right_ylim)), fill=color, width=1)
     for dt in [0.0025, 0.005, 0.01, 0.02]:
-        px, _ = map_xy(right_box, math.log(dt), ymin, (xmin, xmax), (ymin - 0.2, ymax + 0.2))
-        draw.line((px, right_box[3], px, right_box[3] + 7), fill="black", width=1)
-        draw.text((px, right_box[3] + 12), f"{dt:g}", fill="black", anchor="ma", font=font(12))
+        px, _ = map_xy(right_box, math.log(dt), right_ylim[0], (xmin, xmax), right_ylim)
+        draw.text((px, right_box[3] + 7), f"{dt:g}", fill="black", anchor="ma", font=font(11))
     for exponent in [-10, -8, -6, -4, -2]:
         value = 10**exponent
-        if ymin - 0.2 <= math.log(value) <= ymax + 0.2:
-            _, py = map_xy(right_box, xmin, math.log(value), (xmin, xmax), (ymin - 0.2, ymax + 0.2))
-            draw.line((right_box[0] - 7, py, right_box[0], py), fill="black", width=1)
-            draw.text((right_box[0] - 12, py), scientific(value), fill="black", anchor="rm", font=font(11))
+        if right_ylim[0] <= math.log(value) <= right_ylim[1]:
+            _, py = map_xy(right_box, xmin, math.log(value), (xmin, xmax), right_ylim)
+            draw.text((right_box[0] - 8, py), scientific(value), fill="black", anchor="rm", font=font(10))
     for index, (name, slope) in enumerate(slopes.items()):
-        color = ["blue", "orange", "red", "green"][index]
-        draw.line((820, 640 + index * 17, 845, 640 + index * 17), fill=color, width=3)
-        draw.text((855, 640 + index * 17), f"{name}, slope {slope:.2f}", fill="black", anchor="lm", font=font(12))
-    draw.text((55, 25), "Part 1 line accuracy", fill="black", font=font(23))
-    image.save(EVIDENCE / "line-accuracy.png")
+        x, y = 720 + (index % 2) * 220, 425 + (index // 2) * 22
+        draw.line((x, y, x + 18, y), fill=colors_conv[index], width=3)
+        draw.text((x + 24, y), f"{name}: slope {slope:.2f}", fill="black", anchor="lm", font=font(10))
+    image.save(EVIDENCE / "line-accuracy.png", dpi=(180, 180))
 
 
 if __name__ == "__main__":

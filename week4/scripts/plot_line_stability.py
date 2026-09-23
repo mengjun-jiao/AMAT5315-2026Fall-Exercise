@@ -1,4 +1,4 @@
-"""Render Part 1 line-stability evidence using data emitted by Rust."""
+"""Render compact line-stability evidence from the Rust data producer."""
 
 import io
 import math
@@ -15,67 +15,91 @@ def font(size):
     return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
 
 
-def color_map(value, low, high):
-    value = max(0.0, min(1.0, (value - low) / (high - low)))
+def viridis(value):
     stops = [(68, 1, 84), (59, 82, 139), (33, 145, 140), (94, 201, 98), (253, 231, 37)]
-    position = value * (len(stops) - 1)
-    left = int(position)
-    fraction = position - left
-    if left == len(stops) - 1:
-        return stops[-1]
-    a, b = stops[left], stops[left + 1]
-    return tuple(int(a[i] * (1 - fraction) + b[i] * fraction) for i in range(3))
+    value = max(0.0, min(1.0, value)) * (len(stops) - 1)
+    index = min(int(value), len(stops) - 2)
+    fraction = value - index
+    return tuple(int(stops[index][i] * (1 - fraction) + stops[index + 1][i] * fraction) for i in range(3))
 
 
 def diverging(value, maximum):
+    if maximum == 0:
+        return (245, 245, 245)
     scale = math.copysign(math.log1p(abs(value) / 1e-3) / math.log1p(maximum / 1e-3), value)
     if scale < 0:
         t = scale + 1
-        return (int(40 * t + 49 * (1 - t)), int(100 * t + 54 * (1 - t)), int(190 * t + 149 * (1 - t)))
-    t = scale
-    return (int(255 * t + 255 * (1 - t)), int(90 * t + 245 * (1 - t)), int(80 * t + 245 * (1 - t)))
+        return (int(49 * (1 - t) + 40 * t), int(54 * (1 - t) + 100 * t), int(149 * (1 - t) + 190 * t))
+    return (255, int(245 * (1 - scale) + 90 * scale), int(245 * (1 - scale) + 80 * scale))
 
 
-def plot_xy(box, x, y, xlim, ylim):
+def point(box, x, y, xlim, ylim):
     left, top, right, bottom = box
-    px = left + (x - xlim[0]) / (xlim[1] - xlim[0]) * (right - left)
-    py = bottom - (y - ylim[0]) / (ylim[1] - ylim[0]) * (bottom - top)
-    return int(px), int(py)
+    return (int(left + (x - xlim[0]) / (xlim[1] - xlim[0]) * (right - left)),
+            int(bottom - (y - ylim[0]) / (ylim[1] - ylim[0]) * (bottom - top)))
 
 
-def label_axes(draw, box, xlabel, ylabel, title, xlim, ylim):
+def axes(draw, box, xlabel, ylabel, title, xlim, ylim, xticks=None, yticks=None):
     left, top, right, bottom = box
     draw.rectangle(box, outline="black")
-    draw.text(((left + right) // 2, bottom + 24), xlabel, fill="black", anchor="mm", font=font(16))
-    draw.text((max(20, left - 42), (top + bottom) // 2), ylabel, fill="black", anchor="mm", font=font(16))
-    draw.text(((left + right) // 2, top - 25), title, fill="black", anchor="mm", font=font(17))
-    for value in [xlim[0], 0, xlim[1]]:
-        px, _ = plot_xy(box, value, ylim[0], xlim, ylim)
-        draw.text((px, bottom + 7), f"{value:g}", fill="black", anchor="ma", font=font(12))
-    for value in [ylim[0], 0, ylim[1]]:
-        _, py = plot_xy(box, xlim[0], value, xlim, ylim)
-        draw.text((left - 7, py), f"{value:g}", fill="black", anchor="rm", font=font(12))
+    draw.text(((left + right) / 2, bottom + 22), xlabel, fill="black", anchor="ma", font=font(14))
+    draw.text((left - 38, (top + bottom) / 2), ylabel, fill="black", anchor="mm", font=font(14))
+    draw.text(((left + right) / 2, top - 18), title, fill="black", anchor="mm", font=font(16))
+    for value, label in (xticks or [(xlim[0], f"{xlim[0]:g}"), (xlim[1], f"{xlim[1]:g}")]):
+        px, _ = point(box, value, ylim[0], xlim, ylim)
+        draw.line((px, bottom, px, bottom + 4), fill="black")
+        draw.text((px, bottom + 6), label, fill="black", anchor="ma", font=font(11))
+    for value, label in (yticks or [(ylim[0], f"{ylim[0]:g}"), (ylim[1], f"{ylim[1]:g}")]):
+        _, py = point(box, xlim[0], value, xlim, ylim)
+        draw.line((left - 4, py, left, py), fill="black")
+        draw.text((left - 7, py), label, fill="black", anchor="rm", font=font(11))
 
 
-def boundary_points(function, xlim, ylim):
-    points = []
-    for row in range(241):
-        y = ylim[0] + (ylim[1] - ylim[0]) * row / 240
-        previous = function(complex(xlim[0], y)) - 1.0
-        for col in range(1, 241):
-            x = xlim[0] + (xlim[1] - xlim[0]) * col / 240
-            current = function(complex(x, y)) - 1.0
-            if previous * current <= 0:
-                points.append((x, y))
-            previous = current
-    return points
+def boundary(draw, function, box, xlim, ylim, color, width=2):
+    previous = None
+    for row in range(801):
+        y = ylim[0] + (ylim[1] - ylim[0]) * row / 800
+        for col in range(801):
+            x = xlim[0] + (xlim[1] - xlim[0]) * col / 800
+            if abs(abs(function(complex(x, y))) - 1) < 0.006:
+                current = point(box, x, y, xlim, ylim)
+                if previous is not None and abs(current[0] - previous[0]) < 5:
+                    draw.line((previous, current), fill=color, width=width)
+                previous = current
+                break
+        else:
+            previous = None
+
+
+def colorbar(draw, box, lo, hi, label, logarithmic=False):
+    left, top, right, bottom = box
+    for x in range(left, right + 1):
+        value = (x - left) / max(1, right - left)
+        draw.line((x, top, x, bottom), fill=viridis(value))
+    draw.rectangle(box, outline="black")
+    draw.text((left, bottom + 5), f"{lo:g}", fill="black", anchor="ma", font=font(10))
+    draw.text(((left + right) / 2, bottom + 5), "1", fill="black", anchor="ma", font=font(10))
+    draw.text((right, bottom + 5), f"{hi:g}", fill="black", anchor="ma", font=font(10))
+    draw.text(((left + right) / 2, bottom + 22), label, fill="black", anchor="ma", font=font(11))
+
+
+def raster(rows, width, height, mapper):
+    image = Image.new("RGB", (width, height))
+    pixels = image.load()
+    for y, row in enumerate(rows):
+        for x, value in enumerate(row):
+            pixels[x, y] = mapper(value)
+    return image
 
 
 def main():
     EVIDENCE.mkdir(exist_ok=True)
     command = ["cargo", "run", "--quiet", "--manifest-path", str(ROOT / "week4" / "Cargo.toml"), "--bin", "line_stability_data"]
     output = subprocess.check_output(command, cwd=ROOT, text=True)
-    grid, spectra, profiles, critical = [], {0.045: [], 0.056: []}, {0.045: [], 0.056: []}, None
+    grid = []
+    spectra = {0.045: [], 0.056: []}
+    histories = {0.045: [], 0.056: []}
+    critical = None
     for line in io.StringIO(output):
         fields = line.rstrip().split(",")
         if fields[0] == "CRITICAL":
@@ -85,58 +109,49 @@ def main():
         elif fields[0] == "SPECTRUM":
             spectra[float(fields[1])].append(tuple(map(float, fields[2:])))
         elif fields[0] == "LINE":
-            profiles[float(fields[1])].append(tuple(map(float, fields[2:])))
+            histories[float(fields[1])].append(tuple(map(float, fields[2:])))
     print(f"Computed RK4 line stability limit: dt_crit = {critical:.12f}")
 
-    image = Image.new("RGB", (1600, 690), "white")
+    image = Image.new("RGB", (1500, 590), "white")
     draw = ImageDraw.Draw(image)
-    panels = [(35, 75, 515, 560), (565, 75, 1015, 560), (1065, 75, 1515, 560)]
+    panels = [(55, 58, 475, 375), (535, 58, 955, 375), (1015, 58, 1435, 375)]
     xlim, ylim = (-4.0, 1.0), (-4.0, 4.0)
-    for real, imaginary, growth in grid:
-        px, py = plot_xy(panels[0], real, imaginary, xlim, ylim)
-        draw.point((px, py), fill=color_map(math.log10(max(growth, 1e-3)), -3.0, 2.0))
-    for function, color in [
-        (lambda z: abs(1 + z), "black"),
-        (lambda z: abs(1 + z + z**2 / 2), "orange"),
-        (lambda z: abs(1 + z + z**2 / 2 + z**3 / 6 + z**4 / 24), "red"),
-    ]:
-        for point in boundary_points(function, xlim, ylim):
-            draw.point(plot_xy(panels[0], *point, xlim, ylim), fill=color)
+    growth = raster([[math.log10(max(value[2], 1e-3)) for value in grid[row * 241:(row + 1) * 241]] for row in range(241)], 241, 241,
+                    lambda value: viridis((value + 3.0) / 5.0)).resize((420, 317), Image.Resampling.BILINEAR)
+    image.paste(growth, panels[0][:2])
+    axes(draw, panels[0], "Re(z)", "Im(z)", "Measured RK4 growth factor", xlim, ylim,
+         [(-4, "-4"), (-2, "-2"), (0, "0"), (1, "1")], [(-4, "-4"), (-2, "-2"), (0, "0"), (2, "2"), (4, "4")])
+    boundary(draw, lambda z: 1 + z, panels[0], xlim, ylim, "black", 2)
+    boundary(draw, lambda z: 1 + z + z**2 / 2, panels[0], xlim, ylim, "#e07a00", 2)
+    boundary(draw, lambda z: 1 + z + z**2 / 2 + z**3 / 6 + z**4 / 24, panels[0], xlim, ylim, "#b00020", 3)
     for dt, color in [(0.045, "cyan"), (0.056, "magenta")]:
         for _, real, imaginary, _ in spectra[dt]:
-            px, py = plot_xy(panels[0], real * dt, imaginary * dt, xlim, ylim)
-            draw.ellipse((px - 3, py - 3, px + 3, py + 3), fill=color)
-    label_axes(draw, panels[0], "Re(z)", "Im(z)", "Measured RK4 stability map", xlim, ylim)
-    legend = [("black", "Euler"), ("orange", "midpoint"), ("red", "RK4")]
-    x_position = 45
+            px, py = point(panels[0], real * dt, imaginary * dt, xlim, ylim)
+            draw.ellipse((px - 3, py - 3, px + 3, py + 3), fill=color, outline="black")
+    colorbar(draw, (150, 405, 380, 417), -3, 2, "log10 measured growth factor")
+    draw.text((55, 455), "crossings: Re ≈ -2.785; Im ≈ ±2.83", fill="black", font=font(12))
+    legend = [("black", "Euler"), ("#e07a00", "midpoint"), ("#b00020", "RK4"), ("cyan", "dt = 0.045"), ("magenta", "dt = 0.056")]
+    x = 55
     for color, label in legend:
-        draw.line((x_position, 610, x_position + 22, 610), fill=color, width=3)
-        draw.text((x_position + 28, 610), label, fill="black", anchor="lm", font=font(12))
-        x_position += 92
-    for color, label in [("cyan", "dt = 0.045"), ("magenta", "dt = 0.056")]:
-        draw.ellipse((x_position, 606, x_position + 8, 614), fill=color)
-        draw.text((x_position + 15, 610), label, fill="black", anchor="lm", font=font(12))
-        x_position += 105
-    draw.text((55, 642), "RK4 crossings: real ≈ -2.785, imaginary ≈ ±2.83", fill="black", font=font(12))
+        draw.line((x, 490, x + 20, 490), fill=color, width=3)
+        draw.text((x + 27, 490), label, fill="black", anchor="lm", font=font(11))
+        x += 92 if "dt" not in label else 110
 
+    fields_by_dt = {}
     for panel, dt in zip(panels[1:], [0.045, 0.056]):
-        rows = profiles[dt]
+        rows = histories[dt]
         times = sorted(set(row[0] for row in rows))
         values = {(row[0], int(row[1])): row[3] for row in rows}
-        maximum = max(abs(value) for value in values.values())
-        left, top, right, bottom = panel
-        cell_width = (right - left) / 64
-        cell_height = (bottom - top) / len(times)
-        for ti, time in enumerate(times):
-            for row in range(64):
-                value = values[(time, row)]
-                px = int(left + row * cell_width)
-                py = int(top + ti * cell_height)
-                draw.rectangle((px, py, int(px + cell_width + 1), int(py + cell_height + 1)), fill=diverging(value, maximum))
-        label_axes(draw, panel, "x", "time", f"RK4 Gaussian, dt = {dt}", (0, 2 * math.pi), (6, 0))
-        draw.text((left + 8, bottom + 25), "time increases downward", fill="black", font=font(12))
-    draw.text((35, 10), "Part 1 line stability: spectral map and time-space histories", fill="black", font=font(23))
-    image.save(EVIDENCE / "line-stability.png")
+        field_rows = [[values[(time, row)] for row in range(64)] for time in times]
+        fields_by_dt[dt] = field_rows
+    maximum = max(abs(value) for field in fields_by_dt.values() for row in field for value in row)
+    for panel, dt in zip(panels[1:], [0.045, 0.056]):
+        rows = raster(fields_by_dt[dt], 64, len(fields_by_dt[dt]), lambda value: diverging(value, maximum)).resize((420, 317), Image.Resampling.BILINEAR)
+        image.paste(rows, panel[:2])
+        axes(draw, panel, "x", "time", f"RK4, dt = {dt}", (0, 2 * math.pi), (6, 0),
+             [(0, "0"), (math.pi, "π"), (2 * math.pi, "2π")], [(6, "0"), (3, "3"), (0, "6")])
+    draw.text((1015, 405), f"shared field scale: ±{maximum:.3g}", fill="black", font=font(11))
+    image.save(EVIDENCE / "line-stability.png", dpi=(180, 180))
 
 
 if __name__ == "__main__":

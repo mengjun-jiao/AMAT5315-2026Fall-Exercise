@@ -91,7 +91,6 @@ def main():
     draw.line((convergence_box[0], threshold_y, convergence_box[2], threshold_y), fill="orange", width=2)
     draw.text((820, 600), f"Fitted slope = {convergence_slope:.3f}; orange threshold = 5e-6", fill="black", font=font(13))
     draw.text((820, 635), f"Selected dt = {convergence['selected_dt']:g} (red point)", fill="black", font=font(13))
-    draw.text((55, 28), "Part 4 temporal order and convergence validation", fill="black", font=font(25))
     image.crop((0, 0, 750, 700)).save(EVIDENCE / "order.png")
     image.crop((750, 0, 1500, 700)).save(EVIDENCE / "convergence.png")
 

@@ -52,27 +52,33 @@ def random_figure():
     frames = read_fields(ARTIFACTS / "random" / "fields.jsonl")
     selected = [min(frames, key=lambda frame: abs(frame["t"] - target)) for target in [0.0, 2.0, 5.0, 10.0]]
     limit = max(abs(value) for value in selected[0]["omega"])
-    image = Image.new("RGB", (1800, 540), "white")
+    image = Image.new("RGB", (1800, 550), "white")
     draw = ImageDraw.Draw(image)
     for panel_index, frame in enumerate(selected):
         left, top, right, bottom = 35 + panel_index * 440, 95, 425 + panel_index * 440, 485
         n = int(round(math.sqrt(len(frame["omega"]))))
-        cell_width, cell_height = (right - left) / n, (bottom - top) / n
+        raster = Image.new("RGB", (n, n))
+        pixels = raster.load()
         for row in range(n):
             for col in range(n):
-                value = frame["omega"][row * n + col]
-                x0, y0 = int(left + col * cell_width), int(top + row * cell_height)
-                draw.rectangle((x0, y0, int(x0 + cell_width + 1), int(y0 + cell_height + 1)), fill=color(value, limit))
+                pixels[col, row] = color(frame["omega"][row * n + col], limit)
+        raster = raster.resize((right - left, bottom - top), Image.Resampling.BILINEAR)
+        image.paste(raster, (left, top))
         draw.rectangle((left, top, right, bottom), outline="black")
-        draw.text(((left + right) / 2, top - 35), f"t = {frame['t']:g}", fill="black", anchor="mm", font=font(20))
+        z_value = 0.5 * sum(value * value for value in frame["omega"]) / len(frame["omega"])
+        draw.text(((left + right) / 2, top - 28), f"t = {frame['t']:g}, E = {energy(frame):.4f}, Z = {z_value:.4f}", fill="black", anchor="mm", font=font(13))
         draw.text((left, bottom + 10), "0", fill="black", anchor="ra", font=font(12))
         draw.text((right, bottom + 10), "2π", fill="black", anchor="la", font=font(12))
         draw.text((left - 8, top), "0", fill="black", anchor="ra", font=font(12))
         draw.text((left - 8, bottom), "2π", fill="black", anchor="rd", font=font(12))
-        draw.text((left + 8, top + 8), f"E = {energy(frame):.4f}", fill="black", font=font(12))
-        draw.text((left + 8, top + 25), f"Z = {0.5 * sum(value * value for value in frame['omega']) / len(frame['omega']):.4f}", fill="black", font=font(12))
-    draw.text((35, 28), "Random-flow vorticity evolution", fill="black", font=font(25))
-    draw.text((35, 510), f"Shared vorticity colour scale: [{-limit:.3f}, {limit:.3f}]", fill="black", font=font(14))
+    for x in range(650, 1050):
+        fraction = (x - 650) / 400
+        draw.line((x, 480, x, 492), fill=color(-limit + 2 * limit * fraction, limit))
+    draw.rectangle((650, 480, 1050, 492), outline="black")
+    draw.text((650, 495), f"−{limit:.3f}", fill="black", anchor="la", font=font(10))
+    draw.text((850, 495), "0", fill="black", anchor="ma", font=font(10))
+    draw.text((1050, 495), f"{limit:.3f}", fill="black", anchor="ra", font=font(10))
+    draw.text((1080, 486), "vorticity", fill="black", anchor="lm", font=font(11))
     image.save(EVIDENCE / "random.png")
 
 
@@ -80,12 +86,30 @@ def energy(frame):
     return 0.5 * sum(u * u + v * v for u, v in zip(frame["u"], frame["v"])) / len(frame["u"])
 
 
-def chart_axes(draw, box, title, xlabel, ylabel):
+def chart_axes(draw, box, title, xlabel, ylabel, ylabel_inside=True):
     draw.rectangle(box, outline="black")
     left, top, right, bottom = box
     draw.text(((left + right) / 2, top - 25), title, fill="black", anchor="mm", font=font(19))
     draw.text(((left + right) / 2, bottom + 28), xlabel, fill="black", anchor="mm", font=font(15))
-    draw.text((left + 5, (top + bottom) / 2), ylabel, fill="black", anchor="lm", font=font(13))
+    if ylabel_inside:
+        draw.text((left + 5, (top + bottom) / 2), ylabel, fill="black", anchor="lm", font=font(13))
+    else:
+        draw.text((left - 8, (top + bottom) / 2), ylabel, fill="black", anchor="rm", font=font(13))
+
+
+def log_ticks(draw, box, x_max, y_min, y_max):
+    left, top, right, bottom = box
+    for time in [0, x_max / 2, x_max]:
+        px, _ = xy(box, time, math.log(y_min), (0, x_max), (math.log(y_min), math.log(y_max)))
+        draw.line((px, bottom, px, bottom + 5), fill="black")
+        draw.text((px, bottom + 7), f"{time:g}", fill="black", anchor="ma", font=font(10))
+    first = math.ceil(math.log10(y_min))
+    last = math.floor(math.log10(y_max))
+    for exponent in range(first, last + 1):
+        value = 10 ** exponent
+        _, py = xy(box, 0, math.log(value), (0, x_max), (math.log(y_min), math.log(y_max)))
+        draw.line((left - 5, py, left, py), fill="black")
+        draw.text((left - 8, py), f"1e{exponent:+d}", fill="black", anchor="rm", font=font(10))
 
 
 def log_point(box, time, value, x_max, y_min, y_max):
@@ -106,13 +130,15 @@ def blowup_figure():
         points = [log_point(boxes[0], t, e, 8, min(tg_y) * 0.5, max(tg_y) * 2) for t, e, _ in rows]
         plot_line(draw, points, colour)
     exact = [log_point(boxes[0], t, 0.25 * math.exp(-0.4 * t), 8, min(tg_y) * 0.5, max(tg_y) * 2) for t in [i * 0.05 for i in range(161)]]
-    plot_line(draw, exact, "black", 2)
+    for index in range(0, len(exact) - 1, 2):
+        draw.line((exact[index], exact[index + 1]), fill="black", width=2)
     stop = next((t for t, e, _ in read_diagnostics(ARTIFACTS / "scan/taylor-green-dt-0.033.tsv") if not math.isfinite(e)), None)
     if stop is not None:
         px, _ = xy(boxes[0], stop, math.log(min(tg_y)), (0, 8), (math.log(min(tg_y) * 0.5), math.log(max(tg_y) * 2)))
         draw.line((px, boxes[0][1], px, boxes[0][3]), fill="red", width=1)
         draw.text((px + 5, boxes[0][1] + 8), f"stop {stop:.3g}", fill="red", font=font(12))
-    draw.text((95, 625), "Dashed black: exact E(t); predicted limit = 0.0316", fill="black", font=font(13))
+    log_ticks(draw, boxes[0], 8, min(tg_y) * 0.5, max(tg_y) * 2)
+    draw.text((100, 125), "predicted diffusive limit = 0.0316", fill="black", font=font(12))
     random_runs = [("RK4 dt=0.035", "blue", read_diagnostics(ARTIFACTS / "scan/random-rk4-dt-0.035.tsv")), ("RK4 dt=0.038", "red", read_diagnostics(ARTIFACTS / "scan/random-rk4-dt-0.038.tsv")), ("Euler dt=0.010", "green", read_diagnostics(ARTIFACTS / "scan/random-euler-dt-0.010.tsv"))]
     random_y = [e for _, _, rows in random_runs for _, e, _ in rows if math.isfinite(e)]
     chart_axes(draw, boxes[1], "Random-flow stability", "time", "energy (log scale)")
@@ -124,9 +150,11 @@ def blowup_figure():
             px, _ = xy(boxes[1], stop, math.log(min(random_y)), (0, 10), (math.log(min(random_y) * 0.5), math.log(max(random_y) * 2)))
             draw.line((px, boxes[1][1], px, boxes[1][3]), fill=colour, width=1)
             draw.text((px + 5, boxes[1][1] + 8 + (0 if colour == "red" else 18)), f"stop {stop:.3g}", fill=colour, font=font(12))
-    draw.text((885, 625), "Conservative advective bound = 0.02066; measured bracket = [0.035, 0.038]", fill="black", font=font(13))
-    for index, (name, colour, _) in enumerate(tg_runs + random_runs):
-        x = 105 + index * 115 if index < 2 else 900 + (index - 2) * 130
+    log_ticks(draw, boxes[1], 10, min(random_y) * 0.5, max(random_y) * 2)
+    draw.text((890, 125), "advective bound = 0.02066; bracket = [0.035, 0.038]", fill="black", font=font(12))
+    legend_runs = tg_runs + [("exact", "black", [])] + random_runs
+    for index, (name, colour, _) in enumerate(legend_runs):
+        x = 105 + index * 115 if index < 3 else 900 + (index - 3) * 130
         y = 655 if index < 2 else 655
         draw.line((x, y, x + 20, y), fill=colour, width=3)
         draw.text((x + 26, y), name, fill="black", anchor="lm", font=font(11))
@@ -154,7 +182,7 @@ def sensitivity_figure():
     draw = ImageDraw.Draw(image)
     box = (100, 90, 900, 540)
     all_values = [value for values in distances.values() for _, value in values if value > 0]
-    chart_axes(draw, box, "Sensitivity to initial vorticity ripple", "time", "relative vorticity distance (log scale)")
+    chart_axes(draw, box, "Sensitivity to initial vorticity ripple", "time", "relative vorticity distance (log scale)", False)
     for label, colour in [("Taylor-Green", "blue"), ("Random flow", "red")]:
         points = [log_point(box, t, value, 20, min(all_values) * 0.5, max(all_values) * 2) for t, value in distances[label]]
         plot_line(draw, points, colour, 3)

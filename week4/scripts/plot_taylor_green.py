@@ -43,9 +43,9 @@ def main():
     print(f"Stored max |omega|: t=0 {max(abs(value) for value in initial['omega']):.8f}, t=1 {max(abs(value) for value in final['omega']):.8f}")
 
     n = int(round(math.sqrt(len(initial["omega"]))))
-    image = Image.new("RGB", (1400, 720), "white")
+    image = Image.new("RGB", (1160, 540), "white")
     draw = ImageDraw.Draw(image)
-    panels = [(80, 105, 610, 610), (730, 105, 1260, 610)]
+    panels = [(55, 65, 500, 485), (610, 65, 1055, 485)]
     common_velocity = max(
         math.hypot(u, v)
         for frame in [initial, final]
@@ -72,21 +72,20 @@ def main():
                 end = (start[0] + frame["u"][index] * arrow_scale, start[1] - frame["v"][index] * arrow_scale)
                 arrow(draw, start, end, "black")
         draw.rectangle(panel, outline="black", width=2)
-        draw.text(((left + right) / 2, top - 32), f"Taylor-Green flow, t = {frame['t']:g}", fill="black", anchor="mm", font=font(20))
-        draw.text(((left + right) / 2, bottom + 30), "x", fill="black", anchor="mm", font=font(16))
-        draw.text((left - 32, (top + bottom) / 2), "y", fill="black", anchor="mm", font=font(16))
-        draw.text((left, bottom + 8), "0", fill="black", anchor="ra", font=font(12))
-        draw.text((right, bottom + 8), "2π", fill="black", anchor="la", font=font(12))
-        draw.text((left - 8, bottom), "0", fill="black", anchor="ra", font=font(12))
-        draw.text((left - 8, top), "2π", fill="black", anchor="rd", font=font(12))
+        draw.text(((left + right) / 2, top - 18), f"t = {frame['t']:g}", fill="black", anchor="mm", font=font(16))
+        draw.text(((left + right) / 2, bottom + 20), "x", fill="black", anchor="mm", font=font(13))
+        draw.text((left - 22, (top + bottom) / 2), "y", fill="black", anchor="mm", font=font(13))
+        draw.text((left, bottom + 5), "0", fill="black", anchor="ra", font=font(10))
+        draw.text((right, bottom + 5), "2π", fill="black", anchor="la", font=font(10))
+        draw.text((left - 6, bottom), "0", fill="black", anchor="ra", font=font(10))
+        draw.text((left - 6, top), "2π", fill="black", anchor="rd", font=font(10))
 
-    draw.text((70, 35), "Part 2 Taylor-Green validation", fill="black", font=font(25))
-    draw.text((80, 660), "Vorticity colour scale: fixed range [-2, 2]; black arrows show velocity", fill="black", font=font(15))
-    legend_left = 1010
+    legend_left = 720
     for index, value in enumerate([-2, -1, 0, 1, 2]):
         x = legend_left + index * 45
-        draw.rectangle((x, 650, x + 45, 666), fill=vorticity_color(value))
-        draw.text((x + 22, 678), f"{value:g}", fill="black", anchor="ma", font=font(11))
+        draw.rectangle((x, 510, x + 45, 522), fill=vorticity_color(value))
+        draw.text((x + 22, 531), f"{value:g}", fill="black", anchor="ma", font=font(9))
+    draw.text((55, 520), "vorticity", fill="black", font=font(11))
     image.save(EVIDENCE / "taylor-green.png")
 
 
