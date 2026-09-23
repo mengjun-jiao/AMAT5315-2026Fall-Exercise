@@ -217,6 +217,34 @@ pub fn exact_wave(x: f64, time: f64, c: f64, nu: f64, k: i32) -> f64 {
     (wavenumber * (x - c * time)).cos() * (-nu * wavenumber * wavenumber * time).exp()
 }
 
+/// Exact Fourier-truncated evolution of the sampled periodic Gaussian.
+pub fn exact_periodic_gaussian(
+    grid: &[f64],
+    time: f64,
+    c: f64,
+    nu: f64,
+    center: f64,
+    sigma: f64,
+) -> Vec<f64> {
+    let mut spectrum = dft(&grid
+        .iter()
+        .map(|&x| periodic_gaussian(x, center, sigma, 1.0))
+        .collect::<Vec<_>>());
+    let n = grid.len();
+    for (index, coefficient) in spectrum.iter_mut().enumerate() {
+        let signed_index = if index <= n / 2 {
+            index as isize
+        } else {
+            index as isize - n as isize
+        };
+        let k = signed_index as f64;
+        let decay = (-nu * k * k * time).exp();
+        let angle = -c * k * time;
+        *coefficient *= Complex::new(decay * angle.cos(), decay * angle.sin());
+    }
+    inverse_dft(&spectrum)
+}
+
 fn centered_derivative(values: &[f64], length: f64, order: usize) -> Vec<f64> {
     let n = values.len();
     let dx = length / n as f64;
