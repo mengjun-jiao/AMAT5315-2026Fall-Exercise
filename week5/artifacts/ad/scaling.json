@@ -1,0 +1,73 @@
+{
+  "atom_counts": [
+    64,
+    128,
+    256,
+    512,
+    1024
+  ],
+  "random_seed": 5315,
+  "lattice_spacing": 1.122462048309373,
+  "perturbation_std": 0.05,
+  "periodic_boundary_conditions": false,
+  "pair_cutoff": null,
+  "repetitions": 3,
+  "timing_method": "median synchronized wall-clock time after JIT warm-up",
+  "results": [
+    {
+      "N": 64,
+      "P": 192,
+      "energy_time": 0.00016959499998847605,
+      "forward_gradient_time": 0.07216927099989334,
+      "reverse_gradient_time": 0.00017361300024276716,
+      "forward_ratio": 425.53890742532053,
+      "reverse_ratio": 1.023691737696065,
+      "forward_relative_error": 1.0701850053577572e-15,
+      "reverse_relative_error": 2.853826680954019e-16
+    },
+    {
+      "N": 128,
+      "P": 384,
+      "energy_time": 0.0002357190001021081,
+      "forward_gradient_time": 0.17301900899974498,
+      "reverse_gradient_time": 0.00043854599971382413,
+      "forward_ratio": 734.0053577556204,
+      "reverse_ratio": 1.8604609705787654,
+      "forward_relative_error": 2.566785511989127e-15,
+      "reverse_relative_error": 6.7944322376182775e-16
+    },
+    {
+      "N": 256,
+      "P": 768,
+      "energy_time": 0.0002338649997000175,
+      "forward_gradient_time": 0.3666483359997983,
+      "reverse_gradient_time": 0.000752809999994497,
+      "forward_ratio": 1567.777719924333,
+      "reverse_ratio": 3.218993868086883,
+      "forward_relative_error": 2.159193941857501e-15,
+      "reverse_relative_error": 5.397984854643753e-16
+    },
+    {
+      "N": 512,
+      "P": 1536,
+      "energy_time": 0.00034905900020021363,
+      "forward_gradient_time": 0.9841696349999438,
+      "reverse_gradient_time": 0.002028805000009015,
+      "forward_ratio": 2819.4936513180946,
+      "reverse_ratio": 5.812212258802469,
+      "forward_relative_error": 1.804360910528301e-15,
+      "reverse_relative_error": 1.9847970015811312e-15
+    },
+    {
+      "N": 1024,
+      "P": 3072,
+      "energy_time": 0.0007115929997780768,
+      "forward_gradient_time": 2.6038459090000288,
+      "reverse_gradient_time": 0.023780852000072628,
+      "forward_ratio": 3659.1786453943273,
+      "reverse_ratio": 33.419176421759516,
+      "forward_relative_error": 1.621941279206204e-15,
+      "reverse_relative_error": 7.433897529695102e-16
+    }
+  ]
+}
