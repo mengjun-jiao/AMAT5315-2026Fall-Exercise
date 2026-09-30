@@ -1,5 +1,7 @@
 use ndarray::Array2;
 
+use anyhow::{bail, Result};
+
 #[derive(Debug, Clone)]
 pub struct State {
     pub previous: Array2<f64>,
@@ -13,6 +15,19 @@ impl State {
             previous: Array2::zeros(shape),
             current: Array2::zeros(shape),
         }
+    }
+
+    pub fn advance(&mut self, next: Array2<f64>) -> Result<()> {
+        if next.dim() != self.current.dim() {
+            bail!(
+                "next field shape {:?} does not match state shape {:?}",
+                next.dim(),
+                self.current.dim()
+            );
+        }
+        self.previous.assign(&self.current);
+        self.current = next;
+        Ok(())
     }
 }
 
