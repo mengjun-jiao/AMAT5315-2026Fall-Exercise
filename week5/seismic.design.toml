@@ -36,3 +36,9 @@ every = "forward and adjoint only: frame interval in steps from step 0; default 
 "<out>/wavefield.npy" = "float32 frames of the first shot [frame, z, x]; forward: u^n after step n, n increasing; adjoint: adjoint of u^n after reversing step n, n decreasing"
 "<out>/echo.npy" = "forward only; float32 frames of the first shot; background-plus-perturbation wavefield minus background wavefield; aligned with the wavefield recording frames"
 "<out>/run.json" = "recording adds: every; steps; times = step*dt; one entry per recorded frame in frame order"
+
+[args.reverse]
+data = "born_data.npy of a born run: the receiver weights to back-propagate"
+
+[writes.reverse]
+"<out>/result.json" = "adjoint result later adds a statistics object containing: storage = \"full\"; checkpoints = null; reverse_calls; scheduler_forward_calls; peak_saved_states; peak_saved_bytes; per_shot statistics"

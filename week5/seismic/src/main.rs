@@ -2,6 +2,7 @@ use anyhow::{bail, Result};
 use clap::Parser;
 
 use seismic::{
+    born::run_born,
     cli::{Cli, Mode},
     experiment::Experiment,
     forward::{run_forward, run_forward_recording, shot_l2_norms},
@@ -26,7 +27,18 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        Mode::Born => bail!("unsupported mode: born"),
+        Mode::Born => {
+            if cli.every.is_some() {
+                bail!("--every is not supported for born mode");
+            }
+            let experiment_file = cli.experiment.to_string_lossy();
+            let data = run_born(&experiment_file, &experiment, &cli.out)?;
+            println!("shot\tmode\tdata_l2_norm");
+            for (shot, norm) in shot_l2_norms(&data).into_iter().enumerate() {
+                println!("{shot}\tborn\t{norm:.16e}");
+            }
+            Ok(())
+        }
         Mode::Adjoint => bail!("unsupported mode: adjoint"),
     }
 }
