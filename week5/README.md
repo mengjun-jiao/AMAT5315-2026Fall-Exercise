@@ -1,79 +1,335 @@
 # Week 5 — Automatic Differentiation and Checkpointing
 
-This week covers automatic differentiation, acoustic wave propagation,
-Born/adjoint differentiation, and Treeverse checkpointing.
+## Overview
 
-## Part 2 — Forward acoustic evidence
+Week 5 develops forward- and reverse-mode automatic differentiation for an
+acoustic wave equation. Part 1 uses a Lennard-Jones calculation to expose
+primal, JVP, VJP, graph, and scaling behavior. Part 2 implements acoustic
+wave propagation and receiver recording. Part 3 differentiates the complete
+receiver map: the Born JVP computes `d = Jm`, while the full-history adjoint
+VJP computes `J^T d`. Part 4 adds the Treeverse checkpoint scheduler and uses
+it for reflector and Marmousi migration.
 
-The official reflector experiment is read from `inputs/reflector.json`. The
-input geometry and Ricker source pulse are plotted in
-`artifacts/inputs.png`. The validated forward command is:
+## Environment
 
-```text
-seismic --experiment inputs/reflector.json --mode forward --every 3 --out artifacts/forward
+The Python environment is managed by `uv` and uses JAX with 64-bit values.
+The seismic executable is Rust edition 2024 and is pinned by
+`seismic/rust-toolchain.toml` to `nightly-2026-09-05`. The Enzyme component is
+installed for that toolchain. The repository-local
+`.agents/skills/enzyme-setup/SKILL.md` documents the isolated `no_std`
+kernel/build setup. Enzyme is enabled only by `seismic/build.rs` for the
+kernel; the ordinary CLI crate is not compiled with global `-Zautodiff`.
+
+From `week5/`, prepare the environment with:
+
+```bash
+uv sync
+rustup toolchain install nightly-2026-09-05 --profile minimal --component enzyme
+cargo +nightly-2026-09-05 build --release --manifest-path seismic/Cargo.toml
 ```
 
-Forward gathers are generated in `artifacts/forward/gathers.png`. The global
-trace L2 norm is `11.574769503614`, with relative error
-`4.288517048379e-08` against the reference. The trace maxima occur at index
-`83` for all three shots.
+The resulting executable is `seismic/target/release/seismic`.
 
-Recording uses state step indices `0, 3, ..., 240`; step `150` is frame `50`
-at reduced time `30.0`, or physical time `3.00 s`. The recorded
-`wavefield.npy` and `echo.npy` files remain local and ignored. The
-`wavefield.png` and `echo.png` screenshots were generated manually with the
-course viewer. At step 150, the echo is much weaker than the full field: its
-maximum absolute value is approximately `0.00622`, compared with
-`0.25524` for the background wavefield.
+## Input setup
 
-Committed Part 2 evidence:
+Download the official archive with:
 
-- `artifacts/inputs.png`
-- `artifacts/forward/run.json`
-- `artifacts/forward/result.json`
-- `artifacts/forward/gathers.png`
-- `artifacts/forward/wavefield.png`
-- `artifacts/forward/echo.png`
+```bash
+curl -fLO https://giggleliu.github.io/AMAT5315-2026Fall/downloads/week5-inputs.zip
+```
 
-## Part 3 — Born and full-history adjoint evidence
+If `unzip` is available:
+
+```bash
+unzip -o week5-inputs.zip
+```
+
+The Python fallback is:
+
+```bash
+python3 - <<'PY'
+from zipfile import ZipFile
+
+with ZipFile("week5-inputs.zip") as archive:
+    archive.extractall(".")
+PY
+```
+
+The `inputs/` directory is ignored. Official input data are not committed.
+
+## Part 1 — Automatic differentiation
+
+Part 1A writes `artifacts/ad/derivatives.json`. At `r = 1.3`, the hand-written
+forward tangent, hand-written reverse adjoint, and JAX gradient agree at
+approximately `2.23997992979114`.
+
+Part 1B writes `modes.png`. Maximum absolute errors over the 601-point grid:
+
+```text
+forward AD                 2.1316282072803006e-14
+reverse AD                 1.4210854715202004e-14
+centered finite difference 5.8381033340992872e-09
+```
+
+Part 1C writes `graph.png` and `grad-graph.png`. The corrected shared-node
+interpretation is that `a` is used by both `c = b - a` and `b = a^2`; the
+gradient graph contains an `add_any` accumulation combining the negative
+`c` path and the `b` path. It is not a second physical model node.
+
+Part 1D writes `scaling.png` and `scaling.json`. At `P = 3072`, the committed
+benchmark reports a forward ratio of `4527.56215091473`, a reverse ratio of
+`31.452653835438976`, and a forward/reverse separation of approximately
+`143.96`, with forward and reverse relative errors below `2.0e-15`. On this
+CPU backend reverse timing grows at large `N` because of scatter-add kernel
+cost; the reverse curve is not flat. The separation at `P = 3072` is greater
+than 100.
+
+Run from `week5/`:
+
+```bash
+uv run python scripts/part1a_ad.py
+uv run python scripts/part1b_compare.py
+uv run python scripts/part1c_graph.py
+uv run python scripts/part1d_scaling.py
+```
+
+## Part 2 — Seismic forward propagation
+
+`scripts/plot_inputs.py` generates `artifacts/inputs.png`, showing the
+reflector geometry and source/receiver layout. The validated forward command
+is:
+
+```bash
+seismic/target/release/seismic \
+  --experiment inputs/reflector.json \
+  --mode forward --every 3 --out artifacts/forward
+```
+
+`scripts/plot_forward.py` generates `artifacts/forward/gathers.png`. The
+global trace L2 norm is `11.574769503614`, with relative error
+`4.288517048379e-08` against the reference. Trace index 83 is the largest
+sample for each official shot.
+
+Recording uses state steps `0, 3, ..., 240`. Step 150 is frame 50, reduced
+time `30.0`, and physical time `3.00 s`. The `wavefield.png` and `echo.png`
+screenshots were generated manually with the course viewer. The recorded
+`.npy` arrays remain local and ignored.
+
+## Part 3 — Differentiated seismic simulation
 
 Born mode uses `c0 = background` and the perturbation as the Born tangent
-direction `m`, producing `d = Jm`. The official
-`sum(born_data**2)` is `3.484789021516375e-02`. The generated
-`artifacts/born/born_data.npy` remains local and ignored.
+direction `m`, producing `d = Jm`:
 
-Full-history adjoint mode computes `image = J^T d`, retaining 241 complete
-states per shot with peak saved storage of `6481936` bytes. The generated
-`artifacts/adjoint/image.npy` remains local and ignored.
-
-The transpose identity is:
-
-```text
-left                 = 3.484789021516375e-02
-right                = 3.484789021516372e-02
-relative difference  = 7.964779343672095e-16
+```bash
+seismic/target/release/seismic \
+  --experiment inputs/reflector.json \
+  --mode born --out artifacts/born
 ```
 
-The raw signed RTM evidence is `artifacts/adjoint/image.png`. Its row-L2
-depth profile localizes the known reflector at `2.1 km`: the true depth is
-`2.1 km`, the detected peak is `2.1 km`, and the depth error is `0.0 km`.
+Full-history adjoint mode computes the raw signed image `image = J^T d`:
 
-Adjoint recording stores reverse frames in decreasing timestep order. Step
-132 corresponds to physical time `2.64 s`. The
-`artifacts/adjoint/wavefield.png` screenshot was generated manually using
-the course viewer.
+```bash
+seismic/target/release/seismic \
+  --experiment inputs/reflector.json \
+  --mode adjoint --data artifacts/born/born_data.npy \
+  --out artifacts/adjoint
+```
 
-Committed Part 3 evidence:
+The official Born scale and transpose identity are:
 
-- `artifacts/born/run.json`
-- `artifacts/born/result.json`
-- `artifacts/adjoint/run.json`
-- `artifacts/adjoint/result.json`
-- `artifacts/adjoint/image.png`
-- `artifacts/adjoint/wavefield.png`
+```text
+sum(born_data^2)  = 3.484789021516375e-02
+left              = 3.484789021516375e-02
+right             = 3.484789021516372e-02
+relative difference= 7.964779343672095e-16
+```
 
-The following numerical arrays remain local and ignored:
+Full history retains 241 complete states per shot and uses `6,481,936`
+peak saved bytes. `artifacts/adjoint/image.png`, generated by
+`scripts/plot_rtm_evidence.py`, is the raw signed RTM/depth-profile evidence.
+The known reflector and detected depth-profile peak are both `2.1 km`, with
+`0.0 km` error. Reverse recording is in decreasing timestep order. Step 132
+is physical time `2.64 s`; `artifacts/adjoint/wavefield.png` was generated
+manually with the course viewer.
 
-- `artifacts/born/born_data.npy`
-- `artifacts/adjoint/image.npy`
-- `artifacts/adjoint/wavefield.npy`
+## Part 4 — Treeverse checkpointing
+
+Treeverse uses `--storage treeverse --checkpoints delta`, where `delta` is the
+number of additional checkpoint slots beyond reserved state `s_0`. The
+maximum saved complete states are therefore `delta + 1`. The official
+reflector budgets were audited with `scripts/validate_checkpoints.py` and
+plotted with `scripts/plot_checkpoints.py`.
+
+| delta | scheduler forward calls/shot | peak saved states |
+|---:|---:|---:|
+| 1 | 28680 | 2 |
+| 3 | 1695 | 4 |
+| 5 | 990 | 6 |
+| 10 | 642 | 11 |
+| full history | 240 | 241 |
+
+Full-history peak storage is `6,481,936` bytes. Every checkpointed reflector
+image matched full history exactly. Action logs independently verify gradient
+order, restore validity, storage budgets, and final checkpoint set `{s_0}`.
+`artifacts/checkpoint-actions.png` visualizes the budget-5 action sequence;
+`artifacts/checkpoint-work.png` compares recomputation and storage.
+
+## Marmousi
+
+Born data are generated with:
+
+```bash
+seismic/target/release/seismic \
+  --experiment inputs/marmousi.json \
+  --mode born --out artifacts/marmousi-born
+```
+
+The only official Marmousi adjoint command is Treeverse with five additional
+checkpoint slots:
+
+```bash
+seismic/target/release/seismic \
+  --experiment inputs/marmousi.json \
+  --mode adjoint \
+  --data artifacts/marmousi-born/born_data.npy \
+  --storage treeverse --checkpoints 5 \
+  --out artifacts/marmousi-image
+```
+
+**NEVER run Marmousi adjoint with full-history storage.**
+
+The checkpointed run retains six complete states and uses `20,788,320` bytes.
+Hypothetical full history would require approximately 4.16 GB per shot. The
+raw Marmousi image has L2 norm `6.7037740603782781e-04`, with relative
+reference error `5.9103605090433609e-09`. Its Born/adjoint transpose relative
+difference is `1.6337306236981017e-15`. `scripts/validate_marmousi.py`
+checks all nine action logs. `scripts/plot_marmousi.py` generates the four-
+panel `artifacts/marmousi.png` evidence figure.
+
+## Evidence inventory
+
+All paths below are committed evidence files. The generating command or script
+and the supported claim are listed together.
+
+- `artifacts/inputs.png` — `scripts/plot_inputs.py`; reflector geometry.
+- `artifacts/ad/derivatives.json` — `scripts/part1a_ad.py`; scalar JVP/VJP
+  and JAX-gradient agreement.
+- `artifacts/ad/modes.png` — `scripts/part1b_compare.py`; derivative and
+  finite-difference comparison.
+- `artifacts/ad/graph.png` and `grad-graph.png` — `scripts/part1c_graph.py`;
+  primal/reverse graph and shared-node accumulation.
+- `artifacts/ad/scaling.png` and `scaling.json` — `scripts/part1d_scaling.py`;
+  timing, scaling, and gradient-error evidence.
+- `artifacts/forward/run.json` and `result.json` — the forward command;
+  reproducibility and result metadata.
+- `artifacts/forward/gathers.png` — `scripts/plot_forward.py`; forward traces.
+- `artifacts/forward/wavefield.png` and `echo.png` — manual course-viewer
+  screenshots; recorded field and echo evidence.
+- `artifacts/born/run.json` and `result.json` — reflector Born command;
+  Born metadata and output contract.
+- `artifacts/adjoint/run.json` and `result.json` — full-history adjoint;
+  adjoint metadata and storage statistics.
+- `artifacts/adjoint/image.png` — `scripts/plot_rtm_evidence.py`; raw RTM
+  image and reflector depth localization.
+- `artifacts/adjoint/wavefield.png` — manual course-viewer screenshot; the
+  step-132 adjoint frame at physical time 2.64 s.
+- `artifacts/checkpoint-{1,3,5,10}/run.json` and `result.json` — four
+  Treeverse commands; budget and aggregate statistics. The literal committed
+  paths are `artifacts/checkpoint-1/run.json`,
+  `artifacts/checkpoint-1/result.json`, `artifacts/checkpoint-3/run.json`,
+  `artifacts/checkpoint-3/result.json`, `artifacts/checkpoint-5/run.json`,
+  `artifacts/checkpoint-5/result.json`, `artifacts/checkpoint-10/run.json`,
+  and `artifacts/checkpoint-10/result.json`.
+- `artifacts/checkpoint-1/actions-0.json`,
+  `artifacts/checkpoint-1/actions-1.json`,
+  `artifacts/checkpoint-1/actions-2.json`,
+  `artifacts/checkpoint-3/actions-0.json`,
+  `artifacts/checkpoint-3/actions-1.json`,
+  `artifacts/checkpoint-3/actions-2.json`,
+  `artifacts/checkpoint-5/actions-0.json`,
+  `artifacts/checkpoint-5/actions-1.json`,
+  `artifacts/checkpoint-5/actions-2.json`,
+  `artifacts/checkpoint-10/actions-0.json`,
+  `artifacts/checkpoint-10/actions-1.json`, and
+  `artifacts/checkpoint-10/actions-2.json` — four Treeverse commands and
+  their per-shot schedules.
+- `artifacts/checkpoint-actions.png` and `checkpoint-work.png` —
+  `scripts/plot_checkpoints.py`; action order and work/storage tradeoff.
+- `artifacts/marmousi-born/run.json` and `result.json` — Marmousi Born;
+  large-experiment metadata.
+- `artifacts/marmousi-image/run.json` and `result.json` — Marmousi Treeverse
+  adjoint; checkpointed statistics.
+- `artifacts/marmousi-image/actions-0.json` through `actions-8.json` — the
+  same adjoint command; all nine action schedules.
+- `artifacts/marmousi.png` — `scripts/plot_marmousi.py`; final Marmousi
+  background, perturbation, Born-gather, and raw-image figure.
+
+## Local ignored arrays
+
+All `*.npy` files are regenerated locally and are not committed. This
+includes forward traces, wavefield and echo recordings, reflector Born data,
+reflector adjoint image and wavefield recordings, checkpoint images,
+Marmousi Born data, and the Marmousi adjoint image.
+
+## Reproduction sequence
+
+Run these commands from `week5/`:
+
+1. Download `week5-inputs.zip` with the `curl` command above and extract it
+   with `unzip` or the Python `zipfile` fallback.
+2. Run `uv sync`.
+3. Install the pinned Rust nightly with Enzyme and build the release binary.
+4. Run the four Part 1 scripts listed in Part 1.
+5. Run `uv run python scripts/plot_inputs.py`.
+6. Run the validated forward command and then
+   `uv run python scripts/plot_forward.py`.
+7. Run the reflector Born command and full-history adjoint command.
+8. Run the four reflector Treeverse commands:
+
+```bash
+for checkpoints in 1 3 5 10; do
+  seismic/target/release/seismic \
+    --experiment inputs/reflector.json \
+    --mode adjoint \
+    --data artifacts/born/born_data.npy \
+    --storage treeverse \
+    --checkpoints "$checkpoints" \
+    --out "artifacts/checkpoint-$checkpoints"
+done
+```
+
+   This is exactly the four budgets 1, 3, 5, and 10.
+9. Run the Marmousi Born command and the Treeverse-only Marmousi adjoint
+   command shown above. Never substitute `--storage full` for Marmousi.
+10. Generate figures with `uv run python scripts/plot_rtm_evidence.py`,
+    `uv run python scripts/plot_checkpoints.py`, and
+    `uv run python scripts/plot_marmousi.py`.
+11. Run the validators:
+
+```bash
+uv run python tests/test_part1a_ad.py
+uv run python tests/test_part1b_compare.py
+uv run python tests/test_part1c_graph.py
+uv run python tests/test_part1d_scaling.py
+uv run python scripts/validate_forward.py
+uv run python scripts/validate_born.py
+uv run python scripts/validate_adjoint.py
+uv run python scripts/validate_transpose.py
+uv run python scripts/validate_checkpoints.py
+uv run python scripts/validate_marmousi.py
+```
+
+## Key verification results
+
+| Check | Result |
+|---|---:|
+| Part 1 maximum AD errors | forward `2.13e-14`, reverse `1.42e-14` |
+| Part 1 finite-difference maximum error | `5.84e-09` |
+| Reflector forward trace L2 | `11.574769503614` |
+| Reflector Born sum of squares | `3.484789021516375e-02` |
+| Reflector full-history transpose relative difference | `7.964779343672095e-16` |
+| Reflector depth peak | `2.1 km` |
+| Marmousi image L2 | `6.7037740603782781e-04` |
+| Marmousi image reference relative error | `5.9103605090433609e-09` |
+| Marmousi transpose relative difference | `1.6337306236981017e-15` |
+| Marmousi Treeverse peak storage | `6` states, `20,788,320` bytes |
