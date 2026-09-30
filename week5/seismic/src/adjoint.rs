@@ -6,6 +6,7 @@ use ndarray_npy::{read_npy, write_npy};
 use serde_json::{json, Value};
 
 use crate::{
+    checkpoint::{self, Action, ActionKind},
     enzyme,
     experiment::{Experiment, GridPoint},
     field::State,
@@ -18,6 +19,7 @@ pub struct ShotStatistics {
     pub reverse_calls: usize,
     pub scheduler_forward_calls: usize,
     pub peak_saved_states: usize,
+    pub actions_file: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +46,7 @@ pub struct AdjointResult {
     pub image: Array2<f64>,
     pub statistics: AdjointStatistics,
     pub recording: Option<AdjointRecording>,
+    pub action_logs: Option<Vec<Vec<Action>>>,
 }
 
 fn flat(field: &Array2<f64>) -> Result<&[f64]> {
@@ -183,6 +186,7 @@ fn simulate_adjoint_shot(
             reverse_calls,
             scheduler_forward_calls: experiment.steps,
             peak_saved_states: history.len(),
+            actions_file: None,
         },
         recording,
     ))
@@ -281,6 +285,333 @@ pub fn simulate_adjoint_with_recording(
             per_shot,
         },
         recording,
+        action_logs: None,
+    })
+}
+
+#[derive(Debug, Clone)]
+struct RuntimeState {
+    step: usize,
+    previous: Vec<f64>,
+    current: Vec<f64>,
+}
+
+impl RuntimeState {
+    fn zeros(length: usize) -> Self {
+        Self {
+            step: 0,
+            previous: vec![0.0; length],
+            current: vec![0.0; length],
+        }
+    }
+
+    fn advance(
+        &mut self,
+        experiment: &Experiment,
+        sponge: &[f64],
+        footprint: &Array2<f64>,
+    ) -> Result<()> {
+        let source = source_for_step(experiment, footprint, self.step);
+        let next = enzyme::timestep_primal(
+            &self.previous,
+            &self.current,
+            flat(&experiment.background)?,
+            sponge,
+            flat(&source)?,
+            experiment.nx,
+            experiment.nz,
+            experiment.dx,
+            experiment.dt,
+        )?;
+        self.previous = std::mem::replace(&mut self.current, next);
+        self.step += 1;
+        Ok(())
+    }
+}
+
+struct TreeverseRuntime {
+    working: RuntimeState,
+    saved: std::collections::BTreeMap<usize, RuntimeState>,
+    bar_out_previous: Vec<f64>,
+    bar_out_current: Vec<f64>,
+    image: Vec<f64>,
+    scheduler_forward_calls: usize,
+    reverse_calls: usize,
+    peak_saved_states: usize,
+    recording: Option<Array3<f32>>,
+    recording_steps: Option<Vec<usize>>,
+    next_recording: usize,
+}
+
+impl TreeverseRuntime {
+    fn new(length: usize, recording_steps: Option<&[usize]>, nz: usize, nx: usize) -> Self {
+        let initial = RuntimeState::zeros(length);
+        let mut saved = std::collections::BTreeMap::new();
+        saved.insert(0, initial.clone());
+        Self {
+            working: initial,
+            saved,
+            bar_out_previous: vec![0.0; length],
+            bar_out_current: vec![0.0; length],
+            image: vec![0.0; length],
+            scheduler_forward_calls: 0,
+            reverse_calls: 0,
+            peak_saved_states: 1,
+            recording: recording_steps.map(|steps| Array3::zeros((steps.len(), nz, nx))),
+            recording_steps: recording_steps.map(ToOwned::to_owned),
+            next_recording: 0,
+        }
+    }
+
+    fn check_saved_states(&mut self, action: &Action, delta: usize) -> Result<()> {
+        let actual = self.saved.len();
+        if actual != action.saved_states {
+            bail!(
+                "Treeverse action {:?} at step {} reports {} saved states, actual count is {}",
+                action.action,
+                action.step,
+                action.saved_states,
+                actual
+            );
+        }
+        if actual > delta + 1 {
+            bail!(
+                "Treeverse checkpoint budget exceeded: {actual} > {}",
+                delta + 1
+            );
+        }
+        self.peak_saved_states = self.peak_saved_states.max(actual);
+        Ok(())
+    }
+
+    fn execute_call(
+        &mut self,
+        step: usize,
+        experiment: &Experiment,
+        sponge: &[f64],
+        footprint: &Array2<f64>,
+    ) -> Result<()> {
+        if self.working.step != step {
+            bail!("Treeverse call expected working state s_{step}");
+        }
+        self.working.advance(experiment, sponge, footprint)?;
+        self.scheduler_forward_calls += 1;
+        Ok(())
+    }
+
+    fn execute_grad(
+        &mut self,
+        step: usize,
+        experiment: &Experiment,
+        sponge: &[f64],
+        footprint: &Array2<f64>,
+        weights: &ArrayView2<'_, f64>,
+    ) -> Result<()> {
+        let state = self
+            .saved
+            .get(&step)
+            .cloned()
+            .with_context(|| format!("Treeverse grad requires saved state s_{step}"))?;
+        inject_receivers(
+            &mut self.bar_out_current,
+            &experiment.receivers,
+            weights,
+            step,
+            experiment.nx,
+        );
+        let source = source_for_step(experiment, footprint, step);
+        let (bar_prev, bar_curr, bar_speed) = enzyme::timestep_vjp(
+            &state.previous,
+            &state.current,
+            flat(&experiment.background)?,
+            sponge,
+            flat(&source)?,
+            &self.bar_out_current,
+            experiment.nx,
+            experiment.nz,
+            experiment.dx,
+            experiment.dt,
+        )?;
+        for (image_value, speed_value) in self.image.iter_mut().zip(bar_speed) {
+            *image_value += speed_value;
+        }
+        self.bar_out_current = bar_curr
+            .into_iter()
+            .zip(std::mem::take(&mut self.bar_out_previous))
+            .map(|(from_timestep, from_state_shift)| from_timestep + from_state_shift)
+            .collect();
+        self.bar_out_previous = bar_prev;
+        if let (Some(steps), Some(frames)) = (&self.recording_steps, self.recording.as_mut())
+            && steps.get(self.next_recording) == Some(&step)
+        {
+            for (value, frame_value) in self.bar_out_current.iter().zip(
+                frames
+                    .index_axis_mut(Axis(0), self.next_recording)
+                    .iter_mut(),
+            ) {
+                *frame_value = *value as f32;
+            }
+            self.next_recording += 1;
+        }
+        self.reverse_calls += 1;
+        Ok(())
+    }
+
+    fn execute(
+        mut self,
+        schedule: &checkpoint::Schedule,
+        delta: usize,
+        experiment: &Experiment,
+        sponge: &[f64],
+        footprint: &Array2<f64>,
+        weights: &ArrayView2<'_, f64>,
+    ) -> Result<TreeverseShot> {
+        for action in &schedule.actions {
+            match action.action {
+                ActionKind::Store => {
+                    if self.working.step != action.step || self.saved.contains_key(&action.step) {
+                        bail!("invalid Treeverse store at step {}", action.step);
+                    }
+                    self.saved.insert(action.step, self.working.clone());
+                }
+                ActionKind::Restore => {
+                    self.working = self.saved.get(&action.step).cloned().with_context(|| {
+                        format!("invalid Treeverse restore at s_{}", action.step)
+                    })?;
+                }
+                ActionKind::Call => {
+                    self.execute_call(action.step, experiment, sponge, footprint)?;
+                }
+                ActionKind::Grad => {
+                    self.execute_grad(action.step, experiment, sponge, footprint, weights)?;
+                }
+                ActionKind::Fetch => {
+                    if action.step == 0 {
+                        bail!("Treeverse cannot fetch s_0");
+                    }
+                    if self.saved.remove(&action.step).is_none() {
+                        bail!("invalid Treeverse fetch at s_{}", action.step);
+                    }
+                }
+            }
+            self.check_saved_states(action, delta)?;
+        }
+        if self.saved.keys().copied().collect::<Vec<_>>() != [0] {
+            bail!("Treeverse did not finish with only s_0 saved");
+        }
+        let image = Array2::from_shape_vec((experiment.nz, experiment.nx), self.image)
+            .context("Treeverse image had an invalid grid shape")?;
+        Ok(TreeverseShot {
+            image,
+            statistics: ShotStatistics {
+                reverse_calls: self.reverse_calls,
+                scheduler_forward_calls: self.scheduler_forward_calls,
+                peak_saved_states: self.peak_saved_states,
+                actions_file: None,
+            },
+            actions: schedule.actions.clone(),
+            recording: self.recording,
+        })
+    }
+}
+
+struct TreeverseShot {
+    image: Array2<f64>,
+    statistics: ShotStatistics,
+    actions: Vec<Action>,
+    recording: Option<Array3<f32>>,
+}
+
+pub fn simulate_treeverse(
+    experiment: &Experiment,
+    weights: &Array3<f64>,
+    delta: usize,
+    every: Option<usize>,
+) -> Result<AdjointResult> {
+    validate_weights(experiment, weights)?;
+    let schedule = checkpoint::generate_schedule(experiment.steps, delta)?;
+    let audit = checkpoint::audit_schedule(experiment.steps, delta, &schedule.actions);
+    if !audit.is_clean() {
+        bail!("Treeverse schedule audit failed: {audit:?}");
+    }
+    let recording_steps = every
+        .map(|value| recording_steps(experiment.steps, value))
+        .transpose()?;
+    let sponge = sponge_damping(
+        experiment.nz,
+        experiment.nx,
+        experiment.sponge_width,
+        experiment.sponge_strength,
+    )?;
+    let sponge = flat(&sponge)?;
+    let mut image = Array2::zeros((experiment.nz, experiment.nx));
+    let mut per_shot = Vec::with_capacity(experiment.shots.len());
+    let mut action_logs = Vec::with_capacity(experiment.shots.len());
+    let mut first_shot_recording = None;
+    for (shot_index, shot) in experiment.shots.iter().copied().enumerate() {
+        let footprint = gaussian_footprint(experiment.nz, experiment.nx, shot)?;
+        let runtime = TreeverseRuntime::new(
+            experiment.nx * experiment.nz,
+            if shot_index == 0 {
+                recording_steps.as_deref()
+            } else {
+                None
+            },
+            experiment.nz,
+            experiment.nx,
+        );
+        let shot_result = runtime.execute(
+            &schedule,
+            delta,
+            experiment,
+            sponge,
+            &footprint,
+            &weights.index_axis(Axis(0), shot_index),
+        )?;
+        image += &shot_result.image;
+        let mut statistics = shot_result.statistics;
+        statistics.actions_file = Some(format!("actions-{shot_index}.json"));
+        per_shot.push(statistics);
+        action_logs.push(shot_result.actions);
+        if shot_index == 0 {
+            first_shot_recording = shot_result.recording;
+        }
+    }
+    let peak_saved_states = per_shot
+        .iter()
+        .map(|shot| shot.peak_saved_states)
+        .max()
+        .unwrap_or(1);
+    let peak_saved_bytes = peak_saved_states * 2 * experiment.nx * experiment.nz * 8;
+    let recording = match (every, recording_steps, first_shot_recording) {
+        (Some(every), Some(steps), Some(wavefield)) => Some(AdjointRecording {
+            every,
+            times: steps
+                .iter()
+                .map(|step| *step as f64 * experiment.dt)
+                .collect(),
+            steps,
+            wavefield,
+        }),
+        (None, None, None) => None,
+        _ => bail!("Treeverse recording requires at least one shot"),
+    };
+    Ok(AdjointResult {
+        image,
+        statistics: AdjointStatistics {
+            storage: "treeverse".to_owned(),
+            checkpoints: Some(delta),
+            reverse_calls: per_shot.iter().map(|shot| shot.reverse_calls).sum(),
+            scheduler_forward_calls: per_shot
+                .iter()
+                .map(|shot| shot.scheduler_forward_calls)
+                .sum(),
+            peak_saved_states,
+            peak_saved_bytes,
+            per_shot,
+        },
+        recording,
+        action_logs: Some(action_logs),
     })
 }
 
@@ -296,11 +627,17 @@ fn statistics_value(statistics: &AdjointStatistics) -> Value {
         "scheduler_forward_calls": statistics.scheduler_forward_calls,
         "peak_saved_states": statistics.peak_saved_states,
         "peak_saved_bytes": statistics.peak_saved_bytes,
-        "per_shot": statistics.per_shot.iter().map(|shot| json!({
-            "reverse_calls": shot.reverse_calls,
-            "scheduler_forward_calls": shot.scheduler_forward_calls,
-            "peak_saved_states": shot.peak_saved_states
-        })).collect::<Vec<_>>()
+        "per_shot": statistics.per_shot.iter().map(|shot| {
+            let mut value = json!({
+                "reverse_calls": shot.reverse_calls,
+                "scheduler_forward_calls": shot.scheduler_forward_calls,
+                "peak_saved_states": shot.peak_saved_states
+            });
+            if let Some(actions_file) = &shot.actions_file {
+                value["actions_file"] = json!(actions_file);
+            }
+            value
+        }).collect::<Vec<_>>()
     })
 }
 
@@ -353,6 +690,11 @@ pub fn write_adjoint_outputs(
         write_npy(out.join("wavefield.npy"), &recording.wavefield)
             .with_context(|| format!("failed to write {}/wavefield.npy", out.display()))?;
     }
+    if let Some(action_logs) = &result.action_logs {
+        for (shot, actions) in action_logs.iter().enumerate() {
+            write_json(&out.join(format!("actions-{shot}.json")), &json!(actions))?;
+        }
+    }
     Ok(())
 }
 
@@ -364,6 +706,19 @@ pub fn run_adjoint(
     out: &Path,
 ) -> Result<AdjointResult> {
     let result = simulate_adjoint_with_recording(experiment, weights, every)?;
+    write_adjoint_outputs(experiment_file, experiment, &result, out)?;
+    Ok(result)
+}
+
+pub fn run_treeverse(
+    experiment_file: &str,
+    experiment: &Experiment,
+    weights: &Array3<f64>,
+    delta: usize,
+    every: Option<usize>,
+    out: &Path,
+) -> Result<AdjointResult> {
+    let result = simulate_treeverse(experiment, weights, delta, every)?;
     write_adjoint_outputs(experiment_file, experiment, &result, out)?;
     Ok(result)
 }

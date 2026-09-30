@@ -2,15 +2,16 @@ use anyhow::{bail, Result};
 use clap::Parser;
 
 use seismic::{
-    adjoint::{read_adjoint_data, run_adjoint},
+    adjoint::{read_adjoint_data, run_adjoint, run_treeverse},
     born::run_born,
-    cli::{Cli, Mode},
+    cli::{validate_checkpoint_options, Cli, Mode, Storage},
     experiment::Experiment,
     forward::{run_forward, run_forward_recording, shot_l2_norms},
 };
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    validate_checkpoint_options(cli.mode, cli.storage, cli.checkpoints)?;
     let experiment = Experiment::from_path(&cli.experiment)?;
 
     match cli.mode {
@@ -53,7 +54,22 @@ fn main() -> Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("--data is required for adjoint mode"))?;
             let weights = read_adjoint_data(data_path, &experiment)?;
             let experiment_file = cli.experiment.to_string_lossy();
-            let result = run_adjoint(&experiment_file, &experiment, &weights, cli.every, &cli.out)?;
+            let result = match cli.storage {
+                Storage::Full => {
+                    run_adjoint(&experiment_file, &experiment, &weights, cli.every, &cli.out)?
+                }
+                Storage::Treeverse => {
+                    let delta = cli.checkpoints.expect("validated treeverse checkpoints");
+                    run_treeverse(
+                        &experiment_file,
+                        &experiment,
+                        &weights,
+                        delta,
+                        cli.every,
+                        &cli.out,
+                    )?
+                }
+            };
             println!("shot\tmode\tdata_l2_norm");
             for (shot, norm) in shot_l2_norms(&weights).into_iter().enumerate() {
                 println!("{shot}\tadjoint\t{norm:.16e}");
