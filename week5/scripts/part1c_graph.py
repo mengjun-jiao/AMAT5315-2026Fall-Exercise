@@ -14,9 +14,9 @@ from matplotlib.patches import FancyBboxPatch
 jax.config.update("jax_enable_x64", True)
 
 try:
-    from part1a_ad import energy, primal
+    from part1a_ad import primal
 except ModuleNotFoundError:
-    from scripts.part1a_ad import energy, primal
+    from scripts.part1a_ad import primal
 
 
 R_VALUE = 1.3
@@ -32,9 +32,14 @@ def primal_jaxpr() -> Any:
     return jax.make_jaxpr(primal)(scalar_input()).jaxpr
 
 
+def explicit_energy(r: Any) -> Any:
+    """Return U from the explicit Part 1A node-structured primal function."""
+    return primal(r)[-1]
+
+
 def gradient_jaxpr() -> Any:
-    """Record JAX's reverse-mode gradient of the Part 1A scalar energy."""
-    return jax.make_jaxpr(jax.grad(energy))(scalar_input()).jaxpr
+    """Record JAX's reverse-mode gradient of the explicit node-structured energy."""
+    return jax.make_jaxpr(jax.grad(explicit_energy))(scalar_input()).jaxpr
 
 
 def operation_label(eqn: Any) -> str:
@@ -78,6 +83,34 @@ def gradient_sequence_around_add_any(jaxpr: Any) -> list[str]:
     start = max(0, add_index - 3)
     stop = min(len(labels), add_index + 2)
     return [f"{index:02d}: {labels[index]}" for index in range(start, stop)]
+
+
+def _producer_map(jaxpr: Any) -> dict[int, tuple[int, Any]]:
+    producers: dict[int, tuple[int, Any]] = {}
+    for equation_index, equation in enumerate(jaxpr.eqns):
+        for variable in equation.outvars:
+            if not isinstance(variable, jax.core.DropVar):
+                producers[_var_key(variable)] = (equation_index, equation)
+    return producers
+
+
+def shared_node_accumulation(jaxpr: Any) -> dict[str, Any]:
+    """Describe the two producer paths that feed the shared-node add_any."""
+    producers = _producer_map(jaxpr)
+    add_indices = [
+        index for index, equation in enumerate(jaxpr.eqns) if equation.primitive.name == "add_any"
+    ]
+    if len(add_indices) != 1:
+        raise ValueError(f"expected one add_any, found {len(add_indices)}")
+    add_index = add_indices[0]
+    add_equation = jaxpr.eqns[add_index]
+    contribution_equations = [producers[_var_key(variable)] for variable in add_equation.invars]
+    return {
+        "add_index": add_index,
+        "add_equation": add_equation,
+        "contribution_equations": contribution_equations,
+        "producer_map": producers,
+    }
 
 
 def _var_key(value: Any) -> int:
@@ -218,6 +251,16 @@ def main() -> None:
     print(
         "gradient operations around add_any:",
         " -> ".join(gradient_sequence_around_add_any(gradient_recording)),
+    )
+    accumulation = shared_node_accumulation(gradient_recording)
+    feeding = [
+        f"{index:02d}: {equation.primitive.name}"
+        for index, equation in accumulation["contribution_equations"]
+    ]
+    print("operations immediately feeding add_any:", " and ".join(feeding))
+    print(
+        "add_any explanation: the neg path is the c = b - a contribution to a; "
+        "the mul path is the b = a^2 contribution to a, so both paths accumulate at a."
     )
     print("generated:", graph_path)
     print("generated:", gradient_path)
