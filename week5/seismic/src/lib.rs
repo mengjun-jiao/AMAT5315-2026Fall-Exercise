@@ -1,5 +1,6 @@
 pub mod adjoint;
 pub mod born;
+pub mod checkpoint;
 pub mod cli;
 pub mod enzyme;
 pub mod experiment;
