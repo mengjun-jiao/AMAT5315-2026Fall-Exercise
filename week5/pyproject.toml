@@ -5,6 +5,7 @@ description = "AMAT5315 Week 5 automatic differentiation exercises"
 requires-python = ">=3.11"
 dependencies = [
     "jax>=0.4.38,<0.9",
+    "matplotlib>=3.11.2",
 ]
 
 [tool.uv]
