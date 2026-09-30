@@ -47,16 +47,13 @@ fn main() -> Result<()> {
             Ok(())
         }
         Mode::Adjoint => {
-            if cli.every.is_some() {
-                bail!("--every is not supported for adjoint mode");
-            }
             let data_path = cli
                 .data
                 .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("--data is required for adjoint mode"))?;
             let weights = read_adjoint_data(data_path, &experiment)?;
             let experiment_file = cli.experiment.to_string_lossy();
-            let result = run_adjoint(&experiment_file, &experiment, &weights, &cli.out)?;
+            let result = run_adjoint(&experiment_file, &experiment, &weights, cli.every, &cli.out)?;
             println!("shot\tmode\tdata_l2_norm");
             for (shot, norm) in shot_l2_norms(&weights).into_iter().enumerate() {
                 println!("{shot}\tadjoint\t{norm:.16e}");

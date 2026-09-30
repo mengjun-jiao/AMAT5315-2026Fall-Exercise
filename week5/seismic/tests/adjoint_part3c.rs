@@ -201,14 +201,7 @@ fn adjoint_statistics_and_image_round_trip_follow_contract() {
 
     let output = PathBuf::from(format!("/tmp/amat5315-adjoint-test-{}", std::process::id()));
     let _ = fs::remove_dir_all(&output);
-    adjoint::write_adjoint_outputs(
-        "inputs/test.json",
-        &experiment,
-        &result.image,
-        &result.statistics,
-        &output,
-    )
-    .unwrap();
+    adjoint::write_adjoint_outputs("inputs/test.json", &experiment, &result, &output).unwrap();
     let image: Array2<f64> = ndarray_npy::read_npy(output.join("image.npy")).unwrap();
     let metadata: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(output.join("result.json")).unwrap()).unwrap();
@@ -234,4 +227,74 @@ fn adjoint_data_reader_rejects_wrong_shape() {
     let error = adjoint::read_adjoint_data(&path, &experiment).unwrap_err();
     assert!(error.to_string().contains("shape"));
     let _ = fs::remove_file(path);
+}
+
+#[test]
+fn adjoint_recording_selects_descending_reverse_steps() {
+    assert_eq!(adjoint::recording_steps(6, 2).unwrap(), vec![4, 2, 0]);
+    assert_eq!(
+        adjoint::recording_steps(240, 3).unwrap().first(),
+        Some(&237)
+    );
+    assert_eq!(adjoint::recording_steps(240, 3).unwrap().last(), Some(&0));
+}
+
+#[test]
+fn adjoint_recording_has_post_vjp_state_semantics_and_metadata() {
+    let experiment = experiment(
+        vec![GridPoint { x: 3, z: 2 }],
+        vec![GridPoint { x: 3, z: 2 }],
+        4,
+    );
+    let mut weights = Array3::zeros((1, 4, 1));
+    weights[(0, 3, 0)] = 0.7;
+    let result = adjoint::simulate_adjoint_with_recording(&experiment, &weights, Some(1)).unwrap();
+    let recording = result.recording.unwrap();
+    assert_eq!(recording.steps, vec![3, 2, 1, 0]);
+    for (actual, expected) in recording.times.iter().zip([0.3, 0.2, 0.1, 0.0]) {
+        assert!((actual - expected).abs() < 1.0e-15);
+    }
+    assert_eq!(recording.wavefield.shape(), &[4, 7, 7]);
+    assert!(recording.wavefield.iter().any(|value| *value != 0.0));
+    assert_ne!(recording.wavefield.index_axis(Axis(0), 0)[[2, 3]], 0.7_f32);
+}
+
+#[test]
+fn adjoint_recording_is_first_shot_only_and_does_not_change_image() {
+    let experiment = base_experiment();
+    let weights = Array3::from_shape_fn((2, 5, 2), |(shot, step, receiver)| {
+        0.01 + 0.02 * shot as f64 + 0.03 * step as f64 - 0.01 * receiver as f64
+    });
+    let ordinary = adjoint::simulate_adjoint(&experiment, &weights).unwrap();
+    let recorded =
+        adjoint::simulate_adjoint_with_recording(&experiment, &weights, Some(2)).unwrap();
+    assert_eq!(ordinary.image, recorded.image);
+    let recording = recorded.recording.unwrap();
+    assert_eq!(recording.steps, vec![4, 2, 0]);
+    assert_eq!(recording.wavefield.shape(), &[3, 7, 7]);
+}
+
+#[test]
+fn adjoint_recording_metadata_uses_reduced_times() {
+    let experiment = base_experiment();
+    let weights = Array3::zeros((2, 5, 2));
+    let result = adjoint::simulate_adjoint_with_recording(&experiment, &weights, Some(2)).unwrap();
+    let output = PathBuf::from(format!(
+        "/tmp/amat5315-adjoint-recording-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&output);
+    adjoint::write_adjoint_outputs("inputs/test.json", &experiment, &result, &output).unwrap();
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(output.join("run.json")).unwrap()).unwrap();
+    assert_eq!(metadata["recording"]["every"], 2);
+    assert_eq!(metadata["recording"]["steps"], serde_json::json!([4, 2, 0]));
+    assert_eq!(
+        metadata["recording"]["times"],
+        serde_json::json!([0.4, 0.2, 0.0])
+    );
+    let wavefield: ndarray::Array3<f32> =
+        ndarray_npy::read_npy(output.join("wavefield.npy")).unwrap();
+    assert_eq!(wavefield.shape(), &[3, 7, 7]);
+    let _ = fs::remove_dir_all(output);
 }
