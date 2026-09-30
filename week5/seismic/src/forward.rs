@@ -52,6 +52,7 @@ pub fn simulate_shot(
     Ok(simulate_shot_internal(experiment, &experiment.background, sponge, shot, None)?.traces)
 }
 
+#[allow(clippy::collapsible_if)]
 fn simulate_shot_internal(
     experiment: &Experiment,
     wave_speed: &Array2<f64>,
