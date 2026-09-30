@@ -24,4 +24,7 @@ pub struct Cli {
 
     #[arg(long)]
     pub every: Option<usize>,
+
+    #[arg(long)]
+    pub data: Option<PathBuf>,
 }
