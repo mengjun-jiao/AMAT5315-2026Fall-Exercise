@@ -42,3 +42,13 @@ data = "born_data.npy of a born run: the receiver weights to back-propagate"
 
 [writes.reverse]
 "<out>/result.json" = "adjoint result later adds a statistics object containing: storage = \"full\"; checkpoints = null; reverse_calls; scheduler_forward_calls; peak_saved_states; peak_saved_bytes; per_shot statistics"
+
+[args.checkpoint]
+storage = "how adjoint keeps states: full (default) or treeverse"
+checkpoints = "treeverse only: saved-state slots beyond the initial state"
+
+[writes.checkpoint]
+"<out>/actions-<shot>.json" = "one action entry per scheduler action, each containing action, step, and saved_states; saved_states counts saved complete states after the action, including s_0"
+actions = "allowed actions are store (save working s_n in a new checkpoint slot), restore (copy saved s_n into the working state), call (advance working s_n to s_(n+1)), grad (reverse timestep n using saved input s_n), and fetch (free the slot holding s_n)"
+invariants = "s_0 is saved from the start and never freed; grad steps N-1 through 0 occur exactly once in that order; after completion only s_0 remains saved"
+statistics = "treeverse result statistics use storage = \"treeverse\"; checkpoints = requested additional-slot budget; retain reverse_calls, scheduler_forward_calls, peak_saved_states, and peak_saved_bytes; per_shot adds actions_file"
