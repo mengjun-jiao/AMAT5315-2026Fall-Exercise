@@ -131,7 +131,7 @@ Full-history adjoint mode computes the raw signed image `image = J^T d`:
 ```bash
 seismic/target/release/seismic \
   --experiment inputs/reflector.json \
-  --mode adjoint --data artifacts/born/born_data.npy \
+  --mode adjoint --data artifacts/born/born_data.npy --every 3 \
   --out artifacts/adjoint
 ```
 
