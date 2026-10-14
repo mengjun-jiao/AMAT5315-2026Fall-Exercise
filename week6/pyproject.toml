@@ -1,0 +1,14 @@
+[project]
+name = "amat5315-week6"
+version = "0.1.0"
+description = "AMAT5315 Week 6 energy-based models exercises"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "jax",
+    "jaxlib",
+]
+
+[tool.uv]
+package = false

@@ -1,0 +1,36 @@
+[training]
+
+images = 60000
+epochs = 20
+batch_size = 100
+shuffle_each_epoch = true
+
+optimizer = "SGD"
+
+learning_rate = 0.1
+momentum = 0.0
+weight_decay = 0.0
+
+
+[model]
+
+visible_units = 784
+hidden_units = 128
+
+
+[initialization]
+
+weight_std = 0.01
+hidden_bias = 0.0
+
+visible_bias = "logit(clipped training pixel frequency)"
+
+pixel_frequency_clip = [0.01,0.99]
+
+
+[seeds]
+
+initialization = 6601
+training = 6602
+evaluation = 6606
+completion = 6607
