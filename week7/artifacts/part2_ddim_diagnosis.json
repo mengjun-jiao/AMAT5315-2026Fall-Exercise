@@ -1,0 +1,154 @@
+{
+  "seed": 7603,
+  "sample_count": 256,
+  "checkpoint_update": 25000,
+  "checkpoint": "week7/artifacts/checkpoints/update_025000.npz",
+  "predictors": [
+    "trained_network",
+    "exact_conditional_mean"
+  ],
+  "levels": {
+    "count": 1001,
+    "first": 1000,
+    "last": 0,
+    "complete_1000_to_0": true
+  },
+  "shared_initial_noise": true,
+  "initial_noise_shape": [
+    256,
+    2
+  ],
+  "trained_network": {
+    "clusters": [
+      {
+        "count": 66,
+        "population": 0.2578125,
+        "centre": [
+          3.0174925327301025,
+          0.05542151257395744
+        ],
+        "centre_error": 0.05811654403805733,
+        "spread": [
+          0.24941033124923706,
+          0.31073710322380066
+        ]
+      },
+      {
+        "count": 64,
+        "population": 0.25,
+        "centre": [
+          0.02074499800801277,
+          2.984058141708374
+        ],
+        "centre_error": 0.026162907481193542,
+        "spread": [
+          0.3308371603488922,
+          0.3057793378829956
+        ]
+      },
+      {
+        "count": 56,
+        "population": 0.21875,
+        "centre": [
+          -3.0503690242767334,
+          0.010754512622952461
+        ],
+        "centre_error": 0.05150435119867325,
+        "spread": [
+          0.3246936500072479,
+          0.2598813772201538
+        ]
+      },
+      {
+        "count": 70,
+        "population": 0.2734375,
+        "centre": [
+          0.055497586727142334,
+          -2.9696121215820312
+        ],
+        "centre_error": 0.06327246874570847,
+        "spread": [
+          0.3319760262966156,
+          0.261214017868042
+        ]
+      }
+    ],
+    "mean": [
+      0.13104060292243958,
+      -0.04934777319431305
+    ],
+    "variance": [
+      4.479222774505615,
+      4.734788417816162
+    ]
+  },
+  "exact_conditional_mean": {
+    "clusters": [
+      {
+        "count": 69,
+        "population": 0.26953125,
+        "centre": [
+          3.0045177936553955,
+          0.053083233535289764
+        ],
+        "centre_error": 0.05327513441443443,
+        "spread": [
+          0.2611248195171356,
+          0.33350875973701477
+        ]
+      },
+      {
+        "count": 62,
+        "population": 0.2421875,
+        "centre": [
+          5.451133256428875e-05,
+          2.9964284896850586
+        ],
+        "centre_error": 0.003571926150470972,
+        "spread": [
+          0.31489965319633484,
+          0.299841970205307
+        ]
+      },
+      {
+        "count": 55,
+        "population": 0.21484375,
+        "centre": [
+          -3.065648317337036,
+          0.02474377118051052
+        ],
+        "centre_error": 0.07015665620565414,
+        "spread": [
+          0.3009098768234253,
+          0.25921520590782166
+        ]
+      },
+      {
+        "count": 70,
+        "population": 0.2734375,
+        "centre": [
+          0.039045363664627075,
+          -2.953253746032715
+        ],
+        "centre_error": 0.06090773642063141,
+        "spread": [
+          0.31991061568260193,
+          0.2798819839954376
+        ]
+      }
+    ],
+    "mean": [
+      0.16186560690402985,
+      -0.06220927834510803
+    ],
+    "variance": [
+      4.532581329345703,
+      4.660820960998535
+    ]
+  },
+  "trained_vs_exact_final_max_absolute_difference": 1.9688639640808105,
+  "trained_finite": true,
+  "exact_finite": true,
+  "interpretation": "This diagnostic isolates predictor effects using the same initial states and DDIM grid; it is not a replacement for the formal 2000-sample evaluation.",
+  "device": "cpu:0"
+}

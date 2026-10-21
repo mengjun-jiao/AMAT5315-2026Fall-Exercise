@@ -189,6 +189,34 @@ and no random seed was selected to hide the failed check. Therefore the
 overall Part 2 comparison acceptance is recorded as failed despite the DDIM
 determinism and population checks passing.
 
+### DDIM spread diagnosis
+
+A read-only review of `scripts/ddim.py`, `scripts/ddpm.py`,
+`scripts/exact_noise.py`, `scripts/diffusion.py`, and
+`scripts/evaluate_ddim.py` found no definite implementation error. The review
+confirmed `alpha_bar_0 = 1`, the `t` to `t - 1` array indexing convention, the
+`t - 1` time features, the complete `1000` through `0` grid, the final
+deterministic update, and the absence of extra noise or clipping.
+
+The diagnostic artifact `artifacts/part2_ddim_diagnosis.json` records a
+separate 256-sample experiment with seed `7603`. It used the same initial
+Gaussian states and the complete 1,000-step grid for the trained noise
+predictor and the exact conditional-mean noise predictor. Their final outputs
+had maximum absolute difference `1.968864`. The measured coordinate spreads
+were:
+
+| predictor | cluster 1 | cluster 2 | cluster 3 | cluster 4 |
+| --- | --- | --- | --- | --- |
+| Trained network | `(0.2494, 0.3107)` | `(0.3308, 0.3058)` | `(0.3247, 0.2599)` | `(0.3320, 0.2612)` |
+| Exact conditional mean | `(0.2611, 0.3335)` | `(0.3149, 0.2998)` | `(0.3009, 0.2592)` | `(0.3199, 0.2799)` |
+
+Both predictors produced finite values, but the diagnostic does not establish
+a unique cause for the formal DDIM spread discrepancy. In particular, the
+exact predictor also showed below-threshold spreads in this smaller sample.
+The formal 2,000-sample evaluation remains unchanged and is the basis for the
+reported course acceptance result; the 256-sample diagnostic is supporting
+evidence only.
+
 ## Part 3: Flow Matching and the Cost of Fewer Steps
 
 Status: pending implementation and verification.
