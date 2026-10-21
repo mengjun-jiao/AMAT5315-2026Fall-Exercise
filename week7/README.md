@@ -127,7 +127,30 @@ smoothing or deleting values.
 
 ## Part 2: Deterministic Sampling with DDIM
 
-Status: pending implementation and verification.
+DDIM provides a deterministic reverse sampler for the same noise schedule used
+by DDPM. It uses one initial Gaussian state and no fresh reverse noise, so a
+given model, initial state, and decreasing noise-level list produce the same
+result. DDPM adds stochastic noise at intermediate reverse steps, while DDIM
+uses the predicted clean point and the next cumulative noise level directly.
+
+The implementation supports the complete 1000-level grid and sparse grids. It
+also includes an exact conditional-mean noise predictor for the four-Gaussian
+target. This predictor uses the known mixture parameters and posterior
+component weights to isolate distribution and sampler behavior from neural
+network prediction error.
+
+Run the basic verification with:
+
+```bash
+uv run python scripts/verify_ddim.py
+```
+
+The verification output is saved to `artifacts/part2_ddim_verification.json`.
+It checks full and sparse sampling, single and batch shapes, finite outputs,
+repeatability, the `t=1`, middle, and `t=1000` exact predictor cases, and
+`alpha_bar_0 = 1`. The 2,000-sample distribution evaluation for DDIM has not
+been performed; later Part 2 evaluation will be separate from this basic
+sampler check.
 
 ## Part 3: Flow Matching and the Cost of Fewer Steps
 
