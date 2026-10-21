@@ -3,9 +3,8 @@
 ## Project Overview
 
 This project studies diffusion models, deterministic sampling, flow matching,
-and image completion. Each part will be implemented and verified separately
-according to the Week 7 learning sheet. The current project scaffold contains
-no algorithm implementation and no completed experiments.
+and image completion. Each part is implemented and verified separately
+according to the Week 7 learning sheet.
 
 ## Environment Setup
 
@@ -32,7 +31,18 @@ environment are used consistently.
 
 ## Part 1: Diffusion Models on a Gaussian Mixture
 
-Status: pending implementation and verification.
+The target distribution and the 1000-step forward diffusion are implemented in
+`scripts/diffusion.py`. The independent verification script samples the four
+Gaussian components, checks the noise schedule, compares the direct and
+stepwise formulas, and reports the `t=1000` statistics:
+
+```bash
+uv run python scripts/verify_forward_diffusion.py
+```
+
+The numerical settings and verification output are saved to
+`artifacts/part1_forward_diffusion.json`. No reverse process or learned
+predictor is included in this subtask.
 
 ## Part 2: Deterministic Sampling with DDIM
 
