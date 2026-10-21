@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import tarfile
@@ -87,7 +88,7 @@ def sample_images(model: CifarUNet2D) -> tuple[dict[int, np.ndarray], int]:
     return snapshots, STEPS
 
 
-def plot_stages(snapshots: dict[int, np.ndarray]) -> None:
+def plot_stages(snapshots: dict[int, np.ndarray], suffix: str = "") -> None:
     figure, axes = plt.subplots(IMAGE_COUNT, len(SNAPSHOT_TIMES), figsize=(13, 10))
     for row in range(IMAGE_COUNT):
         for column, t in enumerate(SNAPSHOT_TIMES):
@@ -96,11 +97,11 @@ def plot_stages(snapshots: dict[int, np.ndarray]) -> None:
             axes[row, column].axis("off")
     figure.suptitle("CIFAR-10 DDPM sampling stages")
     figure.tight_layout()
-    figure.savefig(EVIDENCE_DIR / "part4_cifar_generation_stages.png", dpi=160)
+    figure.savefig(EVIDENCE_DIR / f"part4_cifar_generation_stages{suffix}.png", dpi=160)
     plt.close(figure)
 
 
-def plot_final(final: np.ndarray) -> None:
+def plot_final(final: np.ndarray, suffix: str = "") -> None:
     figure, axes = plt.subplots(1, IMAGE_COUNT, figsize=(10, 3))
     for index, axis in enumerate(np.asarray(axes).reshape(-1)):
         axis.imshow(display_image(final[index]))
@@ -108,7 +109,7 @@ def plot_final(final: np.ndarray) -> None:
         axis.axis("off")
     figure.suptitle("Four generated CIFAR-10 images")
     figure.tight_layout()
-    figure.savefig(EVIDENCE_DIR / "part4_cifar_generated_images.png", dpi=200)
+    figure.savefig(EVIDENCE_DIR / f"part4_cifar_generated_images{suffix}.png", dpi=200)
     plt.close(figure)
 
 
@@ -126,7 +127,7 @@ def load_real_images() -> np.ndarray | None:
     return pixels.astype(np.float32) / 255.0
 
 
-def plot_real_vs_generated(real: np.ndarray, final: np.ndarray) -> None:
+def plot_real_vs_generated(real: np.ndarray, final: np.ndarray, suffix: str = "") -> None:
     figure, axes = plt.subplots(2, IMAGE_COUNT, figsize=(10, 5))
     for index in range(IMAGE_COUNT):
         axes[0, index].imshow(real[index].transpose(1, 2, 0))
@@ -137,11 +138,16 @@ def plot_real_vs_generated(real: np.ndarray, final: np.ndarray) -> None:
         axes[1, index].axis("off")
     figure.suptitle("Real CIFAR-10 test images and generated images")
     figure.tight_layout()
-    figure.savefig(EVIDENCE_DIR / "part4_cifar_real_vs_generated.png", dpi=200)
+    figure.savefig(EVIDENCE_DIR / f"part4_cifar_real_vs_generated{suffix}.png", dpi=200)
     plt.close(figure)
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--suffix", default="", help="suffix for output artifacts, such as _v2")
+    suffix = parser.parse_args().suffix
+    raw_path = ROOT / "artifacts" / f"part4_cifar_generated_raw{suffix}.npz"
+    json_path = ROOT / "artifacts" / f"part4_cifar_generation{suffix}.json"
     started = time.perf_counter()
     config = read_config(CONFIG_PATH)
     tensors, _, names = load_safetensors(WEIGHTS_PATH)
@@ -153,20 +159,20 @@ def main() -> None:
 
     RAW_PATH.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(
-        RAW_PATH,
+        raw_path,
         final=final,
         **{f"snapshot_t{t}": snapshots[t] for t in SNAPSHOT_TIMES},
     )
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-    plot_stages(snapshots)
-    plot_final(final)
+    plot_stages(snapshots, suffix)
+    plot_final(final, suffix)
     real = load_real_images()
     if real is not None:
-        plot_real_vs_generated(real, final)
+        plot_real_vs_generated(real, final, suffix)
         real_status = {
             "available": True,
             "source": str(REAL_DATA_PATH.relative_to(ROOT.parent)),
-            "figure": "evidence/part4_cifar_real_vs_generated.png",
+            "figure": f"evidence/part4_cifar_real_vs_generated{suffix}.png",
         }
     else:
         real_status = {"available": False, "reason": "No local CIFAR-10 binary archive found."}
@@ -202,14 +208,14 @@ def main() -> None:
             "snapshot_timesteps": list(SNAPSHOT_TIMES),
             "states_not_clipped": True,
             "final_reverse_step_added_noise": False,
-            "raw_output_path": str(RAW_PATH.relative_to(ROOT)),
+            "raw_output_path": str(raw_path.relative_to(ROOT)),
             "runtime_seconds": time.perf_counter() - started,
         },
         "snapshots": snapshot_stats,
         "final_finite": bool(np.isfinite(final).all()),
         "real_comparison": real_status,
     }
-    JSON_PATH.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
+    json_path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"steps_executed": steps_executed, "final_shape": list(final.shape), "runtime_seconds": output["sampling"]["runtime_seconds"], "real_comparison": real_status}, indent=2))
 
 

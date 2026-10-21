@@ -439,6 +439,46 @@ figure makes clear that the generated outputs are not as recognizable or
 semantically sharp as the real CIFAR-10 examples. The completed Part 5 RePaint
 experiment is documented below.
 
+### Attention-layout correction and regenerated images
+
+The initial CIFAR generation used a hardcoded 32-head attention layout. The
+checkpoint configuration has `attention_head_dim = null`; the Diffusers
+reference semantics resolve this to the current block channel count. For the
+256-channel attention blocks, the corrected implementation therefore uses one
+head with dimension 256 in the down, middle, and up attention modules.
+
+The focused validation command is:
+
+```bash
+uv run python scripts/verify_cifar_attention.py
+```
+
+It confirms the one-head, 256-dimension layout for all six attention modules,
+complete mapping of all 328 checkpoint tensors, finite outputs with shape
+`(batch, 3, 32, 32)` for batch sizes `1` and `4` at `t = 1`, `500`, and
+`1000`, and an unchanged checkpoint hash. The validation record is saved to
+`artifacts/part4_cifar_attention_validation.json`.
+
+The corrected generation uses the same seed `7404`, 1,000-step DDPM schedule,
+CPU float32 execution, and display convention as the original experiment:
+
+```bash
+uv run python scripts/generate_cifar_images.py --suffix _v2
+```
+
+The corrected outputs are saved separately:
+
+- `evidence/part4_cifar_generation_stages_v2.png`;
+- `evidence/part4_cifar_generated_images_v2.png`;
+- `evidence/part4_cifar_real_vs_generated_v2.png`;
+- `artifacts/part4_cifar_generation_v2.json`;
+- `artifacts/part4_cifar_generated_raw_v2.npz`.
+
+Compared with the original outputs, the corrected snapshots develop stronger
+spatial organization by `t=200` and recognizable object-like structures by
+`t=50` and `t=0`. The four samples remain low-resolution and imperfect, but
+the corrected attention layout substantially improves semantic structure.
+
 ## Part 5: Filling in Missing Pixels with the Downloaded Model
 
 RePaint completes the central missing square in the four prepared course test

@@ -49,6 +49,9 @@ class CifarUNet2D:
         self.used_names: set[str] = set()
         self.norm_groups = int(config["norm_num_groups"])
         self.norm_eps = float(config["norm_eps"])
+        configured_head_dim = config.get("attention_head_dim")
+        self.attention_head_dim = None if configured_head_dim is None else int(configured_head_dim)
+        self.resolved_attention_layouts: dict[str, dict[str, int]] = {}
 
     def p(self, name: str):
         self.used_names.add(name)
@@ -80,8 +83,17 @@ class CifarUNet2D:
         query = tokens @ jnp.asarray(self.p(f"{prefix}.query.weight"), dtype=jnp.float32).T + jnp.asarray(self.p(f"{prefix}.query.bias"), dtype=jnp.float32)
         key = tokens @ jnp.asarray(self.p(f"{prefix}.key.weight"), dtype=jnp.float32).T + jnp.asarray(self.p(f"{prefix}.key.bias"), dtype=jnp.float32)
         value = tokens @ jnp.asarray(self.p(f"{prefix}.value.weight"), dtype=jnp.float32).T + jnp.asarray(self.p(f"{prefix}.value.bias"), dtype=jnp.float32)
-        heads = 32
-        head_dim = channels // heads
+        # Diffusers resolves a null attention_head_dim to the current block
+        # channel count, which gives one head for this checkpoint.
+        head_dim = channels if self.attention_head_dim is None else self.attention_head_dim
+        if head_dim <= 0 or channels % head_dim:
+            raise ValueError(f"attention head dimension {head_dim} does not divide {channels}")
+        heads = channels // head_dim
+        self.resolved_attention_layouts[prefix] = {
+            "channels": channels,
+            "heads": heads,
+            "head_dim": head_dim,
+        }
         query = query.reshape(batch, -1, heads, head_dim).transpose(0, 2, 1, 3)
         key = key.reshape(batch, -1, heads, head_dim).transpose(0, 2, 1, 3)
         value = value.reshape(batch, -1, heads, head_dim).transpose(0, 2, 1, 3)

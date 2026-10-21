@@ -1,0 +1,121 @@
+{
+  "attention_head_dim_config": null,
+  "resolved_attention_layouts": {
+    "down_blocks.1.attentions.0": {
+      "channels": 256,
+      "heads": 1,
+      "head_dim": 256
+    },
+    "down_blocks.1.attentions.1": {
+      "channels": 256,
+      "heads": 1,
+      "head_dim": 256
+    },
+    "mid_block.attentions.0": {
+      "channels": 256,
+      "heads": 1,
+      "head_dim": 256
+    },
+    "up_blocks.2.attentions.0": {
+      "channels": 256,
+      "heads": 1,
+      "head_dim": 256
+    },
+    "up_blocks.2.attentions.1": {
+      "channels": 256,
+      "heads": 1,
+      "head_dim": 256
+    },
+    "up_blocks.2.attentions.2": {
+      "channels": 256,
+      "heads": 1,
+      "head_dim": 256
+    }
+  },
+  "expected_current_layout": "one head of dimension 256 for every attention module",
+  "checkpoint_tensor_count": 328,
+  "mapped_tensor_count": 328,
+  "unused_checkpoint_tensors": [],
+  "missing_checkpoint_tensors": [],
+  "tensor_mapping_complete": true,
+  "results": [
+    {
+      "batch_size": 1,
+      "timestep": 1,
+      "output_shape": [
+        1,
+        3,
+        32,
+        32
+      ],
+      "shape_matches": true,
+      "finite": true
+    },
+    {
+      "batch_size": 1,
+      "timestep": 500,
+      "output_shape": [
+        1,
+        3,
+        32,
+        32
+      ],
+      "shape_matches": true,
+      "finite": true
+    },
+    {
+      "batch_size": 1,
+      "timestep": 1000,
+      "output_shape": [
+        1,
+        3,
+        32,
+        32
+      ],
+      "shape_matches": true,
+      "finite": true
+    },
+    {
+      "batch_size": 4,
+      "timestep": 1,
+      "output_shape": [
+        4,
+        3,
+        32,
+        32
+      ],
+      "shape_matches": true,
+      "finite": true
+    },
+    {
+      "batch_size": 4,
+      "timestep": 500,
+      "output_shape": [
+        4,
+        3,
+        32,
+        32
+      ],
+      "shape_matches": true,
+      "finite": true
+    },
+    {
+      "batch_size": 4,
+      "timestep": 1000,
+      "output_shape": [
+        4,
+        3,
+        32,
+        32
+      ],
+      "shape_matches": true,
+      "finite": true
+    }
+  ],
+  "all_shape_checks_pass": true,
+  "all_finite_checks_pass": true,
+  "weights_sha256_before": "1558dbe3fb093b0857d473e376b711eeda1b186c557be5e85b3a56300cd49f0f",
+  "weights_sha256_after": "1558dbe3fb093b0857d473e376b711eeda1b186c557be5e85b3a56300cd49f0f",
+  "weights_unchanged": true,
+  "device": "cpu:0"
+}
