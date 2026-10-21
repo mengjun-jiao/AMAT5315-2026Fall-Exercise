@@ -103,7 +103,9 @@ The final distribution evaluation writes
 `artifacts/part1_ddpm_distribution.json`. It compares 2,000 samples from the
 update 25000 model with 2,000 independently sampled points from the exact
 target mixture. Checkpoint animation and the quantitative distribution
-evaluation complete the current Part 1 verification; Parts 2–5 remain pending.
+evaluation complete the Part 1 verification. All five Week 7 parts have now
+been implemented and committed; known verification limitations are documented
+in the later sections.
 
 The 2,000 generated samples produced these measured cluster statistics:
 
@@ -368,7 +370,8 @@ every step count remain in the JSON artifact.
 All generated outputs were finite and had shape `(4000, 2)`. The one-step
 methods are visibly and quantitatively coarse; increasing the number of
 steps substantially reduces distribution and geometry errors. This completes
-the Part 3 sampling-step comparison. Parts 4 and 5 remain pending.
+the Part 3 sampling-step comparison. Parts 4 and 5 are documented below and
+are complete.
 
 ## Part 4: The Same Predictor on Photographs
 
@@ -433,8 +436,8 @@ per-image statistics are saved in
 The final samples show broad color and spatial structure emerging from noise,
 but they remain blurry and texture-like at 32 by 32 resolution. The comparison
 figure makes clear that the generated outputs are not as recognizable or
-semantically sharp as the real CIFAR-10 examples. Full image completion with
-the downloaded model remains pending for Part 5.
+semantically sharp as the real CIFAR-10 examples. The completed Part 5 RePaint
+experiment is documented below.
 
 ## Part 5: Filling in Missing Pixels with the Downloaded Model
 
