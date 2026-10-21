@@ -438,7 +438,49 @@ the downloaded model remains pending for Part 5.
 
 ## Part 5: Filling in Missing Pixels with the Downloaded Model
 
-Status: pending implementation and verification.
+RePaint completes the central missing square in the four prepared course test
+images stored in `inputs/images.npz` under the `test` key. The input contains
+four finite float32 images with shape `(4, 3, 32, 32)` and clean values in
+`[-1, 1]`; no substitute CIFAR images were used.
+
+The mask hides rows `6:26` and columns `6:26` in all three channels, giving a
+central `20 x 20` missing square. RePaint uses the local pretrained
+`google/ddpm-cifar10-32` checkpoint and the same 1,000-level beta schedule as
+Part 4. It follows the noise levels `1000, 980, ..., 20, 0`, with 50 reverse
+jumps and two attempts per jump except for the final jump to zero. The four
+image seeds are `7201`, `7202`, `7203`, and `7204`. Only the observed image and
+mask are passed to the sampler; the hidden target pixels are used after
+sampling only to calculate the withheld-pixel MSE.
+
+Run the experiment with:
+
+```bash
+uv run python scripts/run_repaint.py
+```
+
+The implementation clips the clean estimate to `[-1, 1]` as required by
+RePaint, while leaving noisy sampling states unclipped. At the final level,
+observed pixels are inserted exactly. Results are stored in
+`artifacts/part5_repaint_results.json`, raw arrays in
+`artifacts/part5_repaint_raw.npz`, and the evidence figure in
+`evidence/part5_repaint_completions.png`. The figure shows the original,
+masked observation, completion, and pixelwise variance across the four
+completion arrays. Display conversion maps raw `[-1, 1]` values to `[0, 1]`
+only for plotting.
+
+The measured hidden-pixel MSE values are:
+
+| image | seed | hidden-pixel MSE | maximum observed-pixel change |
+| ---: | ---: | ---: | ---: |
+| 1 | `7201` | `0.139450` | `0.0` |
+| 2 | `7202` | `0.248633` | `0.0` |
+| 3 | `7203` | `0.109094` | `0.0` |
+| 4 | `7204` | `0.166224` | `0.0` |
+
+All four outputs have shape `(3, 32, 32)`, finite values, exactly 1,200
+hidden channel-pixels, and observed-pixel preservation errors below `1e-5`.
+The pretrained checkpoint hash was unchanged by sampling. This completes the
+Week 7 RePaint implementation and verification.
 
 ## Evidence and Reproducibility
 

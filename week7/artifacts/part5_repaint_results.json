@@ -1,0 +1,177 @@
+{
+  "input": {
+    "path": "inputs/images.npz",
+    "key": "test",
+    "shape": [
+      4,
+      3,
+      32,
+      32
+    ],
+    "dtype": "float32",
+    "range": [
+      -1.0,
+      1.0
+    ],
+    "finite": true
+  },
+  "model": {
+    "repository": "google/ddpm-cifar10-32",
+    "intended_revision": "267b167dc01f0e4e61923ea244e8b988f84deb80",
+    "config_sha256": "49579448cd5728fb83f14186de12464eee143d2f5dccb11b8e13744d712eae9d",
+    "weights_sha256": "1558dbe3fb093b0857d473e376b711eeda1b186c557be5e85b3a56300cd49f0f",
+    "weights_sha256_after_sampling": "1558dbe3fb093b0857d473e376b711eeda1b186c557be5e85b3a56300cd49f0f",
+    "weights_unchanged": true,
+    "checkpoint_tensor_count": 328
+  },
+  "sampling": {
+    "device": "cpu:0",
+    "dtype": "float32",
+    "levels": [
+      1000,
+      980,
+      960,
+      940,
+      920,
+      900,
+      880,
+      860,
+      840,
+      820,
+      800,
+      780,
+      760,
+      740,
+      720,
+      700,
+      680,
+      660,
+      640,
+      620,
+      600,
+      580,
+      560,
+      540,
+      520,
+      500,
+      480,
+      460,
+      440,
+      420,
+      400,
+      380,
+      360,
+      340,
+      320,
+      300,
+      280,
+      260,
+      240,
+      220,
+      200,
+      180,
+      160,
+      140,
+      120,
+      100,
+      80,
+      60,
+      40,
+      20,
+      0
+    ],
+    "reverse_jumps": 50,
+    "attempts_per_jump": "two except final jump to zero, which has one",
+    "beta_start": 0.0001,
+    "beta_end": 0.02,
+    "schedule_steps": 1000,
+    "timestep_convention": "mathematical t, with model input t mapped internally to t-1",
+    "clean_estimate_clipped_only": true,
+    "noisy_states_clipped": false,
+    "runtime_seconds": 41.39662948198384
+  },
+  "mask": {
+    "observed_mask_true_outside_square": true,
+    "hidden_rows": [
+      6,
+      26
+    ],
+    "hidden_columns": [
+      6,
+      26
+    ],
+    "hidden_square_shape": [
+      20,
+      20
+    ],
+    "hidden_pixel_count_all_channels": 1200
+  },
+  "images": [
+    {
+      "index": 0,
+      "seed": 7201,
+      "shape": [
+        3,
+        32,
+        32
+      ],
+      "finite": true,
+      "hidden_pixel_mse": 0.13944955170154572,
+      "observed_pixel_max_abs_change": 0.0,
+      "observed_pixels_preserved": true
+    },
+    {
+      "index": 1,
+      "seed": 7202,
+      "shape": [
+        3,
+        32,
+        32
+      ],
+      "finite": true,
+      "hidden_pixel_mse": 0.24863272905349731,
+      "observed_pixel_max_abs_change": 0.0,
+      "observed_pixels_preserved": true
+    },
+    {
+      "index": 2,
+      "seed": 7203,
+      "shape": [
+        3,
+        32,
+        32
+      ],
+      "finite": true,
+      "hidden_pixel_mse": 0.10909388214349747,
+      "observed_pixel_max_abs_change": 0.0,
+      "observed_pixels_preserved": true
+    },
+    {
+      "index": 3,
+      "seed": 7204,
+      "shape": [
+        3,
+        32,
+        32
+      ],
+      "finite": true,
+      "hidden_pixel_mse": 0.1662239134311676,
+      "observed_pixel_max_abs_change": 0.0,
+      "observed_pixels_preserved": true
+    }
+  ],
+  "outputs": {
+    "raw_path": "artifacts/part5_repaint_raw.npz",
+    "figure_path": "evidence/part5_repaint_completions.png",
+    "completion_shape": [
+      4,
+      3,
+      32,
+      32
+    ],
+    "all_finite": true,
+    "max_observed_pixel_error": 0.0,
+    "all_observed_pixels_preserved": true,
+    "variance_definition": "population variance at each channel and pixel across the four completion arrays, averaged over channels for display"
+  }
+}
