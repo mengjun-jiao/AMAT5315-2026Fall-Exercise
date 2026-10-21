@@ -148,9 +148,46 @@ uv run python scripts/verify_ddim.py
 The verification output is saved to `artifacts/part2_ddim_verification.json`.
 It checks full and sparse sampling, single and batch shapes, finite outputs,
 repeatability, the `t=1`, middle, and `t=1000` exact predictor cases, and
-`alpha_bar_0 = 1`. The 2,000-sample distribution evaluation for DDIM has not
-been performed; later Part 2 evaluation will be separate from this basic
-sampler check.
+`alpha_bar_0 = 1`.
+
+### DDIM and DDPM comparison
+
+The 2,000-sample comparison uses checkpoint `update_025000`, 1,000 reverse
+steps, shared initial Gaussian states, and independent reverse noise for the
+two DDPM runs. Run it with:
+
+```bash
+uv run python scripts/evaluate_ddim.py
+```
+
+The results are saved to `artifacts/part2_ddim_evaluation.json`. The figures
+are `evidence/part2_ddim_ddpm_trajectories.png` and
+`evidence/part2_ddim_ddpm_samples.png`. Both figures use the fixed coordinate
+range `[-8, 8]` on both axes, and all generated points are retained in the
+numerical evaluation.
+
+The DDIM repeat maximum absolute difference was `0.0`, and its cluster
+populations were `[0.2480, 0.2605, 0.2490, 0.2425]`. The corresponding
+population tolerance of `0.25 ± 0.015` passed. The DDPM runs had same-cluster
+fractions of `0.257` for paired samples and maximum absolute difference
+`7.084068` between their outputs, demonstrating the intended stochastic
+sampling behavior.
+
+The measured within-cluster coordinate standard deviations were:
+
+| sampler | cluster 1 | cluster 2 | cluster 3 | cluster 4 |
+| --- | --- | --- | --- | --- |
+| DDIM | `(0.2936, 0.3082)` | `(0.2984, 0.2875)` | `(0.3079, 0.3107)` | `(0.3062, 0.2868)` |
+| DDPM run 1 | `(0.2968, 0.2925)` | `(0.2924, 0.2924)` | `(0.2929, 0.2977)` | `(0.2992, 0.2894)` |
+| DDPM run 2 | `(0.3047, 0.3099)` | `(0.2969, 0.3191)` | `(0.3023, 0.2913)` | `(0.3139, 0.3127)` |
+
+The course standard deviation interval is `[0.29, 0.32]`. The DDPM runs
+passed this check. The DDIM result did not pass it because two coordinates
+were below the lower bound: `0.2875` and `0.2868`. The measured results are
+kept unchanged in the JSON artifact; no additional threshold was introduced
+and no random seed was selected to hide the failed check. Therefore the
+overall Part 2 comparison acceptance is recorded as failed despite the DDIM
+determinism and population checks passing.
 
 ## Part 3: Flow Matching and the Cost of Fewer Steps
 

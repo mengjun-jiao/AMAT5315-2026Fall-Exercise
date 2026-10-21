@@ -1,0 +1,361 @@
+{
+  "seed": 7602,
+  "sample_count": 2000,
+  "trajectory_count": 10,
+  "checkpoint_update": 25000,
+  "checkpoint": "week7/artifacts/checkpoints/update_025000.npz",
+  "steps": 1000,
+  "ddim_levels": {
+    "count": 1001,
+    "first": 1000,
+    "last": 0
+  },
+  "schedule": {
+    "beta_start": 9.999999747378752e-05,
+    "beta_end": 0.019999999552965164,
+    "alpha_bar_zero": 1.0
+  },
+  "shared_initial_noise": true,
+  "ddpm_reverse_noise_independent": true,
+  "ddim_repeat_max_absolute_difference": 0.0,
+  "ddpm_repeat_max_absolute_difference": 7.084068298339844,
+  "ddpm_same_target_cluster_fraction": 0.257,
+  "finite_outputs": true,
+  "statistics": {
+    "target": {
+      "clusters": [
+        {
+          "target_center": [
+            3.0,
+            0.0
+          ],
+          "count": 500,
+          "population": 0.25,
+          "centre": [
+            2.996401071548462,
+            -0.03393135219812393
+          ],
+          "centre_error": 0.03412167727947235,
+          "spread": [
+            0.3056447207927704,
+            0.2973887026309967
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            3.0
+          ],
+          "count": 520,
+          "population": 0.26,
+          "centre": [
+            0.006550959777086973,
+            3.014949083328247
+          ],
+          "centre_error": 0.016321463510394096,
+          "spread": [
+            0.3084554374217987,
+            0.28700801730155945
+          ]
+        },
+        {
+          "target_center": [
+            -3.0,
+            0.0
+          ],
+          "count": 488,
+          "population": 0.244,
+          "centre": [
+            -3.0186877250671387,
+            -0.018650170415639877
+          ],
+          "centre_error": 0.02640189230442047,
+          "spread": [
+            0.2914630174636841,
+            0.30166974663734436
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            -3.0
+          ],
+          "count": 492,
+          "population": 0.246,
+          "centre": [
+            0.018450725823640823,
+            -2.9624524116516113
+          ],
+          "centre_error": 0.04183599725365639,
+          "spread": [
+            0.29672229290008545,
+            0.2943251430988312
+          ]
+        }
+      ],
+      "mean": [
+        0.018782224506139755,
+        0.04208948090672493
+      ],
+      "variance": [
+        4.560370445251465,
+        4.610079288482666
+      ]
+    },
+    "ddim": {
+      "clusters": [
+        {
+          "target_center": [
+            3.0,
+            0.0
+          ],
+          "count": 496,
+          "population": 0.248,
+          "centre": [
+            3.025728702545166,
+            -0.01733303628861904
+          ],
+          "centre_error": 0.031022578477859497,
+          "spread": [
+            0.29358935356140137,
+            0.30821493268013
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            3.0
+          ],
+          "count": 521,
+          "population": 0.2605,
+          "centre": [
+            0.01599831134080887,
+            3.0061309337615967
+          ],
+          "centre_error": 0.017132842913269997,
+          "spread": [
+            0.29840725660324097,
+            0.2875152826309204
+          ]
+        },
+        {
+          "target_center": [
+            -3.0,
+            0.0
+          ],
+          "count": 498,
+          "population": 0.249,
+          "centre": [
+            -3.0017170906066895,
+            -0.025105325505137444
+          ],
+          "centre_error": 0.025163978338241577,
+          "spread": [
+            0.3078579306602478,
+            0.3106516897678375
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            -3.0
+          ],
+          "count": 485,
+          "population": 0.2425,
+          "centre": [
+            0.0181256290525198,
+            -2.9833779335021973
+          ],
+          "centre_error": 0.024593321606516838,
+          "spread": [
+            0.30618709325790405,
+            0.2867760956287384
+          ]
+        }
+      ],
+      "mean": [
+        0.01151640061289072,
+        0.049078281968832016
+      ],
+      "variance": [
+        4.607051372528076,
+        4.6014790534973145
+      ]
+    },
+    "ddpm_run_1": {
+      "clusters": [
+        {
+          "target_center": [
+            3.0,
+            0.0
+          ],
+          "count": 506,
+          "population": 0.253,
+          "centre": [
+            2.985980987548828,
+            0.006681389175355434
+          ],
+          "centre_error": 0.01552976667881012,
+          "spread": [
+            0.2968211770057678,
+            0.29252463579177856
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            3.0
+          ],
+          "count": 490,
+          "population": 0.245,
+          "centre": [
+            -0.0122559554874897,
+            3.0068812370300293
+          ],
+          "centre_error": 0.014055599458515644,
+          "spread": [
+            0.2924194037914276,
+            0.29242047667503357
+          ]
+        },
+        {
+          "target_center": [
+            -3.0,
+            0.0
+          ],
+          "count": 525,
+          "population": 0.2625,
+          "centre": [
+            -2.984365224838257,
+            -0.009317878633737564
+          ],
+          "centre_error": 0.018200797960162163,
+          "spread": [
+            0.2928849756717682,
+            0.2976680397987366
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            -3.0
+          ],
+          "count": 479,
+          "population": 0.2395,
+          "centre": [
+            0.0078065888956189156,
+            -3.001443862915039
+          ],
+          "centre_error": 0.007938990369439125,
+          "spread": [
+            0.2992386817932129,
+            0.2893504500389099
+          ]
+        }
+      ],
+      "mean": [
+        -0.02907484769821167,
+        0.01708419807255268
+      ],
+      "variance": [
+        4.682287216186523,
+        4.46041202545166
+      ]
+    },
+    "ddpm_run_2": {
+      "clusters": [
+        {
+          "target_center": [
+            3.0,
+            0.0
+          ],
+          "count": 470,
+          "population": 0.235,
+          "centre": [
+            2.991133213043213,
+            -0.025566237047314644
+          ],
+          "centre_error": 0.027060162276029587,
+          "spread": [
+            0.30467650294303894,
+            0.30985867977142334
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            3.0
+          ],
+          "count": 517,
+          "population": 0.2585,
+          "centre": [
+            -0.00012728404544759542,
+            3.00048565864563
+          ],
+          "centre_error": 0.0005020612734369934,
+          "spread": [
+            0.2969464063644409,
+            0.31911608576774597
+          ]
+        },
+        {
+          "target_center": [
+            -3.0,
+            0.0
+          ],
+          "count": 526,
+          "population": 0.263,
+          "centre": [
+            -2.9944136142730713,
+            0.001104601426050067
+          ],
+          "centre_error": 0.005694545805454254,
+          "spread": [
+            0.30229923129081726,
+            0.29127150774002075
+          ]
+        },
+        {
+          "target_center": [
+            0.0,
+            -3.0
+          ],
+          "count": 487,
+          "population": 0.2435,
+          "centre": [
+            -0.01998268999159336,
+            -3.012263774871826
+          ],
+          "centre_error": 0.0234458539634943,
+          "spread": [
+            0.3139234185218811,
+            0.31266024708747864
+          ]
+        }
+      ],
+      "mean": [
+        -0.08951375633478165,
+        0.03642262518405914
+      ],
+      "variance": [
+        4.5475172996521,
+        4.632668495178223
+      ]
+    }
+  },
+  "acceptance": {
+    "ddim_deterministic": true,
+    "ddim_population_within_0.015": true,
+    "generated_spreads_within_0.29_0.32": false,
+    "overall_pass": false,
+    "ddpm_population_hard_threshold": "not specified by the course"
+  },
+  "plot_limits": [
+    -8.0,
+    8.0
+  ],
+  "runtime_seconds": 20.730934259016067,
+  "device": "cpu:0",
+  "trajectory_figure": "week7/evidence/part2_ddim_ddpm_trajectories.png",
+  "samples_figure": "week7/evidence/part2_ddim_ddpm_samples.png"
+}
