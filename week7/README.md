@@ -272,8 +272,8 @@ while the rectangular grid includes lower-density regions where the learned
 field extrapolates. This observation does not establish a unique cause, and
 the prescribed settings and acceptance threshold were left unchanged.
 
-The full comparison of DDPM, DDIM, and Flow Matching sampling steps is not yet
-complete and remains for the next Part 3 stage.
+The full comparison of DDPM, DDIM, and Flow Matching sampling steps is
+documented below.
 
 ### Sample-supported velocity verification
 
@@ -316,6 +316,59 @@ are retained unchanged. The exact construction of the course reference
 evaluation points has not been established from the available course material
 or reference implementation. Therefore, the sample-supported check does not
 replace the rectangular-grid evaluation and does not change its failed result.
+
+### Sampling-step comparison
+
+The full Part 3 sampler comparison uses the already trained checkpoints and
+does not retrain either model. Run it with:
+
+```bash
+uv run python scripts/evaluate_part3_sampling.py
+```
+
+The comparison uses exactly 4,000 samples for every method and step count, a
+shared initial Gaussian batch, and one fixed exact reference batch from the
+four-component target mixture. The experiment seed is `9317`. Flow Matching
+uses Euler integration with `1`, `2`, `5`, `10`, `20`, `50`, and `100` steps.
+DDIM and DDPM use the same step counts plus `1000` steps. Their integer grids
+start at mathematical level `1000`, end at `0`, and contain exactly the
+requested number of intervals. DDPM reverse-noise arrays use independent
+deterministic subkeys for each step count.
+
+The coarse DDPM sampler uses the cumulative-alpha jump formula and adds no
+noise on the final transition. Its adjacent-level first transition agrees
+with the validated single-step DDPM update to maximum absolute difference
+`1.13e-6` in float32. No clipping is used.
+
+The numerical results are saved to
+`artifacts/part3_sampling_comparison.json`. The metric figure is
+`evidence/part3_sampling_comparison.png`, and sample distributions are shown
+in `evidence/part3_sampling_distributions.png`. The metrics are nearest-centre
+population error, maximum centre error, maximum coordinate spread error, and
+energy distance to the common exact reference batch.
+
+Selected results are summarized below. The complete per-cluster values for
+every step count remain in the JSON artifact.
+
+| method | steps | max population error | max centre error | max width error | energy distance |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Flow Matching | 1 | `0.45475` | `2.95904` | `0.28469` | `2.19841` |
+| Flow Matching | 5 | `0.00775` | `0.28521` | `0.06805` | `0.02502` |
+| Flow Matching | 20 | `0.00700` | `0.07825` | `0.01172` | `0.00314` |
+| Flow Matching | 100 | `0.00725` | `0.02611` | `0.01310` | `0.00174` |
+| DDIM | 1 | `0.19600` | `1.31775` | `2.06115` | `0.64410` |
+| DDIM | 10 | `0.00725` | `0.12846` | `0.03798` | `0.00835` |
+| DDIM | 100 | `0.00575` | `0.03027` | `0.01714` | `0.00158` |
+| DDIM | 1000 | `0.00625` | `0.02471` | `0.01471` | `0.00136` |
+| DDPM | 1 | `0.19600` | `1.31775` | `2.06121` | `0.64410` |
+| DDPM | 10 | `0.00975` | `0.12151` | `0.09303` | `0.00599` |
+| DDPM | 100 | `0.00450` | `0.02552` | `0.02910` | `0.00104` |
+| DDPM | 1000 | `0.01200` | `0.02383` | `0.00450` | `0.00127` |
+
+All generated outputs were finite and had shape `(4000, 2)`. The one-step
+methods are visibly and quantitatively coarse; increasing the number of
+steps substantially reduces distribution and geometry errors. This completes
+the Part 3 sampling-step comparison. Parts 4 and 5 remain pending.
 
 ## Part 4: The Same Predictor on Photographs
 
