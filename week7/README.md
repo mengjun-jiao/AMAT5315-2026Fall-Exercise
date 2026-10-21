@@ -59,6 +59,32 @@ coordinate limits for every frame and includes 201 frames from `t=0` through
 With seed 7201, the generated `t=1000` sample has mean and variance recorded
 in the JSON output for comparison with the standard Gaussian target.
 
+The time-conditioned noise predictor uses the fixed configuration in
+`diffusion.toml`: three 128-unit SiLU hidden layers, 32 sinusoidal time
+features, float32 arithmetic, Adam, cosine learning-rate decay, batch size
+512, and 25,000 updates. Train it with:
+
+```bash
+uv run python scripts/train_diffusion.py
+```
+
+Training records are saved to `artifacts/part1_diffusion_training.json`.
+Checkpoint parameters are written locally to the ignored directory
+`artifacts/checkpoints/` at updates 0, 50, 100, 200, 500, 1000, 2000, 5000,
+10000, and 25000.
+
+After training, run the 1000-step DDPM smoke test with:
+
+```bash
+uv run python scripts/smoke_test_ddpm.py
+```
+
+The smoke-test results are saved to `artifacts/part1_ddpm_smoke_test.json`,
+with a small preview at `evidence/part1_ddpm_smoke_test.png`. This confirms
+finite outputs for the initialization and final checkpoints. Checkpoint
+animation and the quantitative final-distribution evaluation using 2,000
+samples are reserved for the next verification step.
+
 ## Part 2: Deterministic Sampling with DDIM
 
 Status: pending implementation and verification.
