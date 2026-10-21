@@ -83,7 +83,47 @@ The smoke-test results are saved to `artifacts/part1_ddpm_smoke_test.json`,
 with a small preview at `evidence/part1_ddpm_smoke_test.png`. This confirms
 finite outputs for the initialization and final checkpoints. Checkpoint
 animation and the quantitative final-distribution evaluation using 2,000
-samples are reserved for the next verification step.
+samples are provided by the following verification commands:
+
+```bash
+uv run python scripts/animate_diffusion_training.py
+uv run python scripts/evaluate_ddpm_distribution.py
+```
+
+The checkpoint animation uses the same 10 initial Gaussian points and the same
+1000-step reverse noise sequence for every checkpoint. It writes
+`evidence/part1_diffusion_training.gif`,
+`evidence/part1_diffusion_training_stages.png`, and
+`artifacts/part1_diffusion_training_animation.json`. The animation uses fixed
+display limits of `[-10, 10]` on both axes; raw trajectories are not clipped or
+modified, and the raw extrema are recorded in the JSON file.
+
+The final distribution evaluation writes
+`evidence/part1_ddpm_distribution.png` and
+`artifacts/part1_ddpm_distribution.json`. It compares 2,000 samples from the
+update 25000 model with 2,000 independently sampled points from the exact
+target mixture. Checkpoint animation and the quantitative distribution
+evaluation complete the current Part 1 verification; Parts 2–5 remain pending.
+
+The 2,000 generated samples produced these measured cluster statistics:
+
+| target centre | population | measured centre | centre error | measured x spread | measured y spread |
+| --- | ---: | --- | ---: | ---: | ---: |
+| `(3, 0)` | `0.2350` | `(3.00198, 0.00063)` | `0.00207` | `0.30974` | `0.29658` |
+| `(0, 3)` | `0.2625` | `(-0.01741, 2.97608)` | `0.02958` | `0.29270` | `0.31398` |
+| `(-3, 0)` | `0.2470` | `(-3.00300, -0.02730)` | `0.02747` | `0.28365` | `0.30009` |
+| `(0, -3)` | `0.2555` | `(0.00906, -2.99075)` | `0.01295` | `0.30974` | `0.31215` |
+
+Population differences are within `0.04`, centre errors are within `0.05`
+using Euclidean distance, and every coordinate spread is within `[0.27, 0.33]`.
+All three course tolerances therefore pass for this evaluation. The result
+meets these measured criteria without claiming perfect recovery of the target
+distribution.
+
+The recorded training loss decreases from `1.05132` at the first update to
+`0.26442` at update 25000, with a lower value of `0.17764` at update 10000
+and later fluctuations. The loss history is retained in full without
+smoothing or deleting values.
 
 ## Part 2: Deterministic Sampling with DDIM
 

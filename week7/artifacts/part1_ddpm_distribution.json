@@ -1,0 +1,261 @@
+{
+  "seed": 7501,
+  "target_seed": 7502,
+  "sample_count": 2000,
+  "checkpoint_update": 25000,
+  "ddpm_steps": 1000,
+  "no_clipping": true,
+  "final_step_noise": false,
+  "target_centers": [
+    [
+      3.0,
+      0.0
+    ],
+    [
+      0.0,
+      3.0
+    ],
+    [
+      -3.0,
+      0.0
+    ],
+    [
+      0.0,
+      -3.0
+    ]
+  ],
+  "target_component_standard_deviation": 0.3,
+  "generated": {
+    "clusters": [
+      {
+        "target_center": [
+          3.0,
+          0.0
+        ],
+        "population": 0.235,
+        "count": 470,
+        "centre": [
+          3.0019774436950684,
+          0.0006268643774092197
+        ],
+        "spread": [
+          0.3097389042377472,
+          0.29657989740371704
+        ],
+        "centre_absolute_error": [
+          0.0019774436950683594,
+          0.0006268643774092197
+        ],
+        "spread_absolute_error": [
+          0.009738892316818237,
+          0.003420114517211914
+        ]
+      },
+      {
+        "target_center": [
+          0.0,
+          3.0
+        ],
+        "population": 0.2625,
+        "count": 525,
+        "centre": [
+          -0.017412124201655388,
+          2.976081609725952
+        ],
+        "spread": [
+          0.29270485043525696,
+          0.3139849901199341
+        ],
+        "centre_absolute_error": [
+          0.017412124201655388,
+          0.02391839027404785
+        ],
+        "spread_absolute_error": [
+          0.007295161485671997,
+          0.013984978199005127
+        ]
+      },
+      {
+        "target_center": [
+          -3.0,
+          0.0
+        ],
+        "population": 0.247,
+        "count": 494,
+        "centre": [
+          -3.002997398376465,
+          -0.027304554358124733
+        ],
+        "spread": [
+          0.2836472988128662,
+          0.3000851571559906
+        ],
+        "centre_absolute_error": [
+          0.0029973983764648438,
+          0.027304554358124733
+        ],
+        "spread_absolute_error": [
+          0.016352713108062744,
+          8.514523506164551e-05
+        ]
+      },
+      {
+        "target_center": [
+          0.0,
+          -3.0
+        ],
+        "population": 0.2555,
+        "count": 511,
+        "centre": [
+          0.009063844569027424,
+          -2.9907467365264893
+        ],
+        "spread": [
+          0.30973926186561584,
+          0.31214648485183716
+        ],
+        "centre_absolute_error": [
+          0.009063844569027424,
+          0.009253263473510742
+        ],
+        "spread_absolute_error": [
+          0.00973924994468689,
+          0.012146472930908203
+        ]
+      }
+    ],
+    "sample_mean": [
+      -0.038530416786670685,
+      0.010488568805158138
+    ],
+    "sample_variance": [
+      4.435311317443848,
+      4.706245422363281
+    ]
+  },
+  "exact_target_control": {
+    "clusters": [
+      {
+        "target_center": [
+          3.0,
+          0.0
+        ],
+        "population": 0.233,
+        "count": 466,
+        "centre": [
+          2.997567653656006,
+          0.004819477908313274
+        ],
+        "spread": [
+          0.28719305992126465,
+          0.2944229245185852
+        ],
+        "centre_absolute_error": [
+          0.0024323463439941406,
+          0.004819477908313274
+        ],
+        "spread_absolute_error": [
+          0.012806951999664307,
+          0.00557708740234375
+        ]
+      },
+      {
+        "target_center": [
+          0.0,
+          3.0
+        ],
+        "population": 0.262,
+        "count": 524,
+        "centre": [
+          -0.005673015024513006,
+          2.9878323078155518
+        ],
+        "spread": [
+          0.2899874746799469,
+          0.30187973380088806
+        ],
+        "centre_absolute_error": [
+          0.005673015024513006,
+          0.012167692184448242
+        ],
+        "spread_absolute_error": [
+          0.010012537240982056,
+          0.0018797218799591064
+        ]
+      },
+      {
+        "target_center": [
+          -3.0,
+          0.0
+        ],
+        "population": 0.2585,
+        "count": 517,
+        "centre": [
+          -2.9811344146728516,
+          0.009714487008750439
+        ],
+        "spread": [
+          0.2898816168308258,
+          0.2936747074127197
+        ],
+        "centre_absolute_error": [
+          0.018865585327148438,
+          0.009714487008750439
+        ],
+        "spread_absolute_error": [
+          0.01011839509010315,
+          0.0063253045082092285
+        ]
+      },
+      {
+        "target_center": [
+          0.0,
+          -3.0
+        ],
+        "population": 0.2465,
+        "count": 493,
+        "centre": [
+          -0.011266829445958138,
+          -3.0025904178619385
+        ],
+        "spread": [
+          0.3021492063999176,
+          0.3077506721019745
+        ],
+        "centre_absolute_error": [
+          0.011266829445958138,
+          0.0025904178619384766
+        ],
+        "spread_absolute_error": [
+          0.0021491944789886475,
+          0.007750660181045532
+        ]
+      }
+    ],
+    "sample_mean": [
+      -0.07645383477210999,
+      0.04630769044160843
+    ],
+    "sample_variance": [
+      4.4726667404174805,
+      4.650999069213867
+    ]
+  },
+  "acceptance": {
+    "population_tolerance": 0.04,
+    "centre_tolerance": 0.05,
+    "centre_metric": "euclidean distance",
+    "spread_tolerance": 0.03,
+    "spread_interval": [
+      0.27,
+      0.33
+    ],
+    "population_pass": true,
+    "centre_pass": true,
+    "spread_pass": true,
+    "overall_pass": true,
+    "spread_status": "All generated cluster coordinate standard deviations are within [0.27, 0.33]."
+  },
+  "runtime_seconds": 7.613297400996089,
+  "device": "cpu:0"
+}
