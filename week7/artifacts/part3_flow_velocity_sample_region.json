@@ -1,0 +1,147 @@
+{
+  "checkpoint": "week7/artifacts/checkpoints/flow_update_025000.npz",
+  "training_config": {
+    "model": {
+      "hidden_widths": [
+        128,
+        128,
+        128
+      ],
+      "activation": "SiLU",
+      "time_features": 32,
+      "time_frequency_base": 10000.0,
+      "time_scale": 1000.0,
+      "weight_initialization": "normal with std 1/sqrt(input width)",
+      "bias_initialization": 0.0
+    },
+    "training": {
+      "updates": 25000,
+      "batch_size": 512,
+      "optimizer": "Adam",
+      "beta1": 0.9,
+      "beta2": 0.999,
+      "epsilon": 1e-08,
+      "learning_rate": 0.001,
+      "learning_rate_decay": "cosine",
+      "final_learning_rate": 0.0,
+      "precision": "float32",
+      "seed": 2029
+    }
+  },
+  "training_updates": 25000,
+  "seed": 9107,
+  "sample_count": 100000,
+  "time_points": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "evaluation_point_construction": {
+    "formula": "x_s = (1-s) * x0 + s * z",
+    "x0_distribution": "existing four-component Gaussian mixture",
+    "z_distribution": "standard Gaussian in R^2",
+    "independent_subkeys_per_time": true,
+    "numerical_evaluation_points": "100000 interpolation-path samples"
+  },
+  "visualization_grid": {
+    "resolution": [
+      41,
+      41
+    ],
+    "bounds_method": "coordinate-wise 1% and 99% quantiles of the same-time interpolation samples",
+    "quantiles": [
+      0.01,
+      0.99
+    ],
+    "separate_from_numerical_evaluation_points": true
+  },
+  "results": {
+    "0.1": {
+      "sample_evaluation": {
+        "point_count": 100000,
+        "rms_numerator": 0.01715874671936035,
+        "exact_field_rms_denominator": 2.1223511695861816,
+        "relative_rms": 0.008084782087549622,
+        "mean_absolute_velocity_error": 0.019797293469309807,
+        "maximum_absolute_velocity_error": 0.44089627265930176,
+        "criterion_relative_rms_below_0.1": true
+      },
+      "visualization_grid": {
+        "point_count": 1681,
+        "resolution": [
+          41,
+          41
+        ],
+        "x_bounds": [
+          -3.2000582218170166,
+          3.200909376144409
+        ],
+        "y_bounds": [
+          -3.2066826820373535,
+          3.207824945449829
+        ]
+      },
+      "course_reference_relative_rms": 0.011,
+      "absolute_difference_from_course_reference": 0.002915217912450377
+    },
+    "0.5": {
+      "sample_evaluation": {
+        "point_count": 100000,
+        "rms_numerator": 0.053692374378442764,
+        "exact_field_rms_denominator": 2.0712103843688965,
+        "relative_rms": 0.02592318712944411,
+        "mean_absolute_velocity_error": 0.046352628618478775,
+        "maximum_absolute_velocity_error": 0.5241653323173523,
+        "criterion_relative_rms_below_0.1": true
+      },
+      "visualization_grid": {
+        "point_count": 1681,
+        "resolution": [
+          41,
+          41
+        ],
+        "x_bounds": [
+          -2.4191949367523193,
+          2.4166204929351807
+        ],
+        "y_bounds": [
+          -2.410710334777832,
+          2.4126698970794678
+        ]
+      },
+      "course_reference_relative_rms": 0.017,
+      "absolute_difference_from_course_reference": 0.008923187129444107
+    },
+    "0.9": {
+      "sample_evaluation": {
+        "point_count": 100000,
+        "rms_numerator": 0.023851165547966957,
+        "exact_field_rms_denominator": 0.4770570993423462,
+        "relative_rms": 0.049996458664690914,
+        "mean_absolute_velocity_error": 0.02385549806058407,
+        "maximum_absolute_velocity_error": 0.3216738700866699,
+        "criterion_relative_rms_below_0.1": true
+      },
+      "visualization_grid": {
+        "point_count": 1681,
+        "resolution": [
+          41,
+          41
+        ],
+        "x_bounds": [
+          -2.1665852069854736,
+          2.144704580307007
+        ],
+        "y_bounds": [
+          -2.146507501602173,
+          2.15154767036438
+        ]
+      },
+      "course_reference_relative_rms": 0.058,
+      "absolute_difference_from_course_reference": 0.008003541335309089
+    }
+  },
+  "official_rectangular_grid_unchanged": true,
+  "figure": "week7/evidence/part3_flow_velocity_sample_region.png",
+  "device": "cpu:0"
+}

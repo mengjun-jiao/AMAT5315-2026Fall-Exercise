@@ -275,6 +275,48 @@ the prescribed settings and acceptance threshold were left unchanged.
 The full comparison of DDPM, DDIM, and Flow Matching sampling steps is not yet
 complete and remains for the next Part 3 stage.
 
+### Sample-supported velocity verification
+
+The rectangular-grid verification above remains the primary recorded course
+evaluation. It uses a 41 by 41 grid over `[-4.5, 4.5]^2` and reports relative
+RMS errors of `0.382280`, `0.317135`, and `0.093909` at `s = 0.1`, `0.5`, and
+`0.9`. The first two values do not meet the course threshold of `0.1`.
+
+An independent sample-supported check is provided by:
+
+```bash
+uv run python scripts/verify_flow_velocity_sample_region.py
+```
+
+This check uses 100,000 interpolation-path points at each time with fixed seed
+`9107` and independent subkeys. Its numerical evaluation points are the
+samples themselves:
+`x_s = (1 - s) x_0 + s z`. The learned and exact fields are evaluated at
+exactly the same points. The results are saved to
+`artifacts/part3_flow_velocity_sample_region.json`.
+
+For visualization only, the script constructs a separate 41 by 41 grid. At
+each time, its x and y bounds are the coordinate-wise 1% and 99% quantiles of
+the 100,000 same-time interpolation samples. The visualization grid is not
+used for the numerical sample-supported RMS values. The figure is saved to
+`evidence/part3_flow_velocity_sample_region.png`.
+
+The sample-supported results are:
+
+| time | RMS numerator | exact RMS denominator | relative RMS | mean absolute error | maximum absolute error |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.1` | `0.017159` | `2.122351` | `0.008085` | `0.019797` | `0.440896` |
+| `0.5` | `0.053692` | `2.071210` | `0.025923` | `0.046353` | `0.524166` |
+| `0.9` | `0.023851` | `0.477057` | `0.049996` | `0.023855` | `0.321674` |
+
+All three sample-supported relative RMS values are below `0.1`. The course
+provides approximate reference values of `0.011`, `0.017`, and `0.058`; the
+measured values are reasonably consistent in scale, while the actual values
+are retained unchanged. The exact construction of the course reference
+evaluation points has not been established from the available course material
+or reference implementation. Therefore, the sample-supported check does not
+replace the rectangular-grid evaluation and does not change its failed result.
+
 ## Part 4: The Same Predictor on Photographs
 
 Status: pending implementation and verification.
