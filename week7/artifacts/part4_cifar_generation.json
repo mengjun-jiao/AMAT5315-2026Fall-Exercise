@@ -1,0 +1,319 @@
+{
+  "model": {
+    "repository": "google/ddpm-cifar10-32",
+    "intended_revision": "267b167dc01f0e4e61923ea244e8b988f84deb80",
+    "config_path": "inputs/cifar-model/config.json",
+    "weights_path": "inputs/cifar-model/diffusion_pytorch_model.safetensors",
+    "config_sha256": "49579448cd5728fb83f14186de12464eee143d2f5dccb11b8e13744d712eae9d",
+    "weights_sha256": "1558dbe3fb093b0857d473e376b711eeda1b186c557be5e85b3a56300cd49f0f",
+    "weights_sha256_after_sampling": "1558dbe3fb093b0857d473e376b711eeda1b186c557be5e85b3a56300cd49f0f",
+    "weights_unchanged": true,
+    "checkpoint_tensor_count": 328
+  },
+  "sampling": {
+    "seed": 7404,
+    "image_count": 4,
+    "image_shape": [
+      3,
+      32,
+      32
+    ],
+    "dtype": "float32",
+    "device": "cpu:0",
+    "reverse_steps_requested": 1000,
+    "reverse_steps_executed": 1000,
+    "beta_start": 0.0001,
+    "beta_end": 0.02,
+    "schedule_steps": 1000,
+    "timestep_convention": "mathematical t=1000,...,1; model receives t and maps internally to t-1",
+    "snapshot_timesteps": [
+      1000,
+      500,
+      200,
+      50,
+      0
+    ],
+    "states_not_clipped": true,
+    "final_reverse_step_added_noise": false,
+    "raw_output_path": "artifacts/part4_cifar_generated_raw.npz",
+    "runtime_seconds": 158.15140068001347
+  },
+  "snapshots": {
+    "1000": {
+      "image_1": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.0035383228678256273,
+        "std": 1.000516653060913,
+        "min": -3.1448276042938232,
+        "max": 3.470155715942383,
+        "finite": true
+      },
+      "image_2": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.0011160029098391533,
+        "std": 0.9874699711799622,
+        "min": -3.4250378608703613,
+        "max": 3.7463085651397705,
+        "finite": true
+      },
+      "image_3": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.01397875789552927,
+        "std": 1.0055546760559082,
+        "min": -3.4518420696258545,
+        "max": 3.583355665206909,
+        "finite": true
+      },
+      "image_4": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.005108702462166548,
+        "std": 0.9846055507659912,
+        "min": -3.871722459793091,
+        "max": 3.7699646949768066,
+        "finite": true
+      }
+    },
+    "500": {
+      "image_1": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.04586656019091606,
+        "std": 0.9797132611274719,
+        "min": -3.365004062652588,
+        "max": 3.2246408462524414,
+        "finite": true
+      },
+      "image_2": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.01577252522110939,
+        "std": 0.9883383512496948,
+        "min": -2.9508931636810303,
+        "max": 3.3971359729766846,
+        "finite": true
+      },
+      "image_3": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.04306413605809212,
+        "std": 0.994687020778656,
+        "min": -3.1667697429656982,
+        "max": 3.430184841156006,
+        "finite": true
+      },
+      "image_4": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.03569042310118675,
+        "std": 1.0098999738693237,
+        "min": -3.6900391578674316,
+        "max": 3.5331006050109863,
+        "finite": true
+      }
+    },
+    "200": {
+      "image_1": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.05473066866397858,
+        "std": 0.6857930421829224,
+        "min": -2.8330435752868652,
+        "max": 2.35380482673645,
+        "finite": true
+      },
+      "image_2": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.04627944156527519,
+        "std": 0.6727821230888367,
+        "min": -2.238487482070923,
+        "max": 2.472416400909424,
+        "finite": true
+      },
+      "image_3": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.1285831481218338,
+        "std": 0.702933132648468,
+        "min": -2.69334077835083,
+        "max": 2.6655020713806152,
+        "finite": true
+      },
+      "image_4": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.06578738987445831,
+        "std": 0.6809547543525696,
+        "min": -2.7501964569091797,
+        "max": 2.2333061695098877,
+        "finite": true
+      }
+    },
+    "50": {
+      "image_1": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.08171548694372177,
+        "std": 0.45541438460350037,
+        "min": -1.2900673151016235,
+        "max": 1.5175397396087646,
+        "finite": true
+      },
+      "image_2": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.06881982833147049,
+        "std": 0.4577646553516388,
+        "min": -1.4696614742279053,
+        "max": 1.6041433811187744,
+        "finite": true
+      },
+      "image_3": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.13420142233371735,
+        "std": 0.4689929783344269,
+        "min": -1.8493554592132568,
+        "max": 1.634830117225647,
+        "finite": true
+      },
+      "image_4": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.061513662338256836,
+        "std": 0.4536170959472656,
+        "min": -1.4334778785705566,
+        "max": 1.5390748977661133,
+        "finite": true
+      }
+    },
+    "0": {
+      "image_1": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.08993478864431381,
+        "std": 0.43014341592788696,
+        "min": -1.2151983976364136,
+        "max": 1.243643879890442,
+        "finite": true
+      },
+      "image_2": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": 0.07010301947593689,
+        "std": 0.4311511516571045,
+        "min": -1.2393537759780884,
+        "max": 1.301509141921997,
+        "finite": true
+      },
+      "image_3": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.134147509932518,
+        "std": 0.438754141330719,
+        "min": -1.5826679468154907,
+        "max": 1.5069019794464111,
+        "finite": true
+      },
+      "image_4": {
+        "shape": [
+          3,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "mean": -0.05812886729836464,
+        "std": 0.424125611782074,
+        "min": -1.3162516355514526,
+        "max": 1.333972454071045,
+        "finite": true
+      }
+    }
+  },
+  "final_finite": true,
+  "real_comparison": {
+    "available": true,
+    "source": "week6/inputs/cifar10/cifar-10-binary.tar.gz",
+    "figure": "evidence/part4_cifar_real_vs_generated.png"
+  }
+}

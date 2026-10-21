@@ -398,8 +398,43 @@ The results are saved to `artifacts/part4_cifar_unet_smoke_test.json`. The
 test covers batch sizes `1` and `4` at `t = 1`, `500`, and `1000`. All six
 outputs have shape `(batch, 3, 32, 32)`, contain finite values, and all 328
 checkpoint tensors are mapped with no unused or missing tensors. This verifies
-parameter loading and forward execution only; full 1,000-step CIFAR DDPM
-image generation has not been run yet.
+parameter loading and forward execution.
+
+### Four-image DDPM generation
+
+Generate exactly four images from the fixed local checkpoint with:
+
+```bash
+uv run python scripts/generate_cifar_images.py
+```
+
+The script uses the intended model repository `google/ddpm-cifar10-32` at
+revision `267b167dc01f0e4e61923ea244e8b988f84deb80`, with local files at
+`inputs/cifar-model/config.json` and
+`inputs/cifar-model/diffusion_pytorch_model.safetensors`. The model is kept
+fixed, sampling runs on the CPU in float32, and the raw image layout is
+`(4, 3, 32, 32)`. Sampling starts from seed `7404`, uses the 1,000-step beta
+schedule from `0.0001` to `0.02`, follows mathematical levels `t=1000` through
+`t=1`, and maps each level to the model's zero-based `t-1` convention. No
+sampling state is clipped, and the final reverse step adds no noise.
+
+The script records the initial state at `t=1000`, intermediate states at
+`t=500`, `t=200`, and `t=50`, and the final state at `t=0`. The raw states and
+per-image statistics are saved in
+`artifacts/part4_cifar_generation.json`; reloadable raw arrays are saved in
+`artifacts/part4_cifar_generated_raw.npz`. The evidence figures are:
+
+- `evidence/part4_cifar_generation_stages.png`, showing all four images at the
+  five saved stages;
+- `evidence/part4_cifar_generated_images.png`, showing the four final images;
+- `evidence/part4_cifar_real_vs_generated.png`, comparing the generated images
+  with four locally available CIFAR-10 test images from the Week 6 archive.
+
+The final samples show broad color and spatial structure emerging from noise,
+but they remain blurry and texture-like at 32 by 32 resolution. The comparison
+figure makes clear that the generated outputs are not as recognizable or
+semantically sharp as the real CIFAR-10 examples. Full image completion with
+the downloaded model remains pending for Part 5.
 
 ## Part 5: Filling in Missing Pixels with the Downloaded Model
 

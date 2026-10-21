@@ -107,7 +107,11 @@ class CifarUNet2D:
         t = jnp.asarray(timesteps, dtype=jnp.float32).reshape(-1)
         if t.shape[0] == 1:
             t = jnp.broadcast_to(t, (x.shape[0],))
-        if t.shape[0] != x.shape[0] or bool(jnp.any(t < 1)) or bool(jnp.any(t > 1000)):
+        # The range check is kept for ordinary eager calls. During compiled
+        # sampling, t is a tracer and its range is guaranteed by the caller.
+        if t.shape[0] != x.shape[0]:
+            raise ValueError("timesteps must be mathematical levels 1 through 1000")
+        if not isinstance(t, jax.core.Tracer) and (bool(jnp.any(t < 1)) or bool(jnp.any(t > 1000))):
             raise ValueError("timesteps must be mathematical levels 1 through 1000")
         x = conv2d(x, self.p("conv_in.weight"), self.p("conv_in.bias"))
         # The checkpoint was trained with zero-based Diffusers indices; the course uses t=1,...,1000.
