@@ -219,7 +219,61 @@ evidence only.
 
 ## Part 3: Flow Matching and the Cost of Fewer Steps
 
-Status: pending implementation and verification.
+Flow Matching trains a velocity field along the linear path
+`x_s = (1 - s) x_0 + s z`, where `x_0` comes from the four-component target
+mixture and `z` is standard Gaussian noise. The training target is the constant
+conditional velocity `u = z - x_0`. The model is a three-layer, 128-unit SiLU
+MLP with 32 time features. Its time encoding uses 16 sine and 16 cosine
+features with phase `1000 s 10000^(-j/16)`, concatenated with the two spatial
+coordinates.
+
+The prescribed configuration is stored in `flow.toml`: float32 arithmetic,
+batch size 512, Adam, cosine learning-rate decay from `0.001` to `0.0`, seed
+`2029`, and exactly 25,000 updates. Train the model with:
+
+```bash
+uv run python scripts/train_flow_matching.py
+```
+
+The full loss history and settings are saved to
+`artifacts/part3_flow_training.json`. The final checkpoint is written to the
+ignored local file `artifacts/checkpoints/flow_update_025000.npz`.
+
+The exact marginal velocity uses the posterior weights of the four
+interpolated Gaussian components. For component `k`, it uses variance
+`(1 - s)^2 0.09 + s^2`, mean `(1 - s) mu_k`, and the analytic conditional
+velocity specified by the learning sheet. It is implemented separately in
+`scripts/exact_velocity.py`.
+
+Verify the learned and exact fields with:
+
+```bash
+uv run python scripts/verify_flow_velocity.py
+```
+
+The verification uses a 41 by 41 grid over `[-4.5, 4.5]` in both coordinates
+at `s = 0.1`, `0.5`, and `0.9`. It writes
+`artifacts/part3_flow_velocity_verification.json` and
+`evidence/part3_flow_velocity_fields.png`. The measured relative RMS errors
+were:
+
+| time | relative RMS error |
+| ---: | ---: |
+| `0.1` | `0.382280` |
+| `0.5` | `0.317135` |
+| `0.9` | `0.093909` |
+
+The model dimensions, finite predictions at `s = 0`, `0.1`, `0.5`, `0.9`, and
+`1`, the exact endpoint relation `v(x, 1) = x`, and the 25,000-entry training
+history all passed. The course relative RMS criterion below `0.1` did not pass
+at `s = 0.1` or `s = 0.5`; it passed at `s = 0.9`. A separate read-only check
+on points sampled from the interpolating data path showed much smaller errors,
+while the rectangular grid includes lower-density regions where the learned
+field extrapolates. This observation does not establish a unique cause, and
+the prescribed settings and acceptance threshold were left unchanged.
+
+The full comparison of DDPM, DDIM, and Flow Matching sampling steps is not yet
+complete and remains for the next Part 3 stage.
 
 ## Part 4: The Same Predictor on Photographs
 

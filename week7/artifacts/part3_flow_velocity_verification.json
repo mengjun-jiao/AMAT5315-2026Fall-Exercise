@@ -1,0 +1,64 @@
+{
+  "checkpoint": "week7/artifacts/checkpoints/flow_update_025000.npz",
+  "grid": {
+    "size": 41,
+    "limits": [
+      -4.5,
+      4.5
+    ],
+    "points": 1681
+  },
+  "test_times": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "relative_rms_errors": {
+    "0.1": 0.38227957487106323,
+    "0.5": 0.3171354830265045,
+    "0.9": 0.09390910714864731
+  },
+  "finite_checks": {
+    "0.0": {
+      "learned": true,
+      "exact": true
+    },
+    "0.1": {
+      "learned": true,
+      "exact": true
+    },
+    "0.5": {
+      "learned": true,
+      "exact": true
+    },
+    "0.9": {
+      "learned": true,
+      "exact": true
+    },
+    "1.0": {
+      "learned": true,
+      "exact": true
+    }
+  },
+  "exact_endpoint_max_absolute_error": 2.384185791015625e-07,
+  "dimension_check": {
+    "input_width": 34,
+    "output_width": 2,
+    "expected_input_width": 34,
+    "expected_output_width": 2,
+    "hidden_widths": [
+      128,
+      128,
+      128
+    ]
+  },
+  "training_history_length": 25000,
+  "acceptance": {
+    "relative_rms_below_0.1_at_all_test_times": false,
+    "finite_at_all_requested_times": true,
+    "exact_endpoint_matches_x": true,
+    "training_history_has_25000_updates": true
+  },
+  "device": "cpu:0",
+  "figure": "week7/evidence/part3_flow_velocity_fields.png"
+}
