@@ -44,6 +44,21 @@ The numerical settings and verification output are saved to
 `artifacts/part1_forward_diffusion.json`. No reverse process or learned
 predictor is included in this subtask.
 
+The full forward trajectory of the same 2,000 target samples can be rendered
+with:
+
+```bash
+uv run python scripts/animate_forward_diffusion.py
+```
+
+This writes `evidence/part1_forward_diffusion.gif`,
+`evidence/part1_forward_diffusion_stages.png`, and
+`artifacts/part1_forward_diffusion_animation.json`. The animation uses fixed
+coordinate limits for every frame and includes 201 frames from `t=0` through
+`t=1000`; the six required stages are included in the static comparison.
+With seed 7201, the generated `t=1000` sample has mean and variance recorded
+in the JSON output for comparison with the standard Gaussian target.
+
 ## Part 2: Deterministic Sampling with DDIM
 
 Status: pending implementation and verification.
