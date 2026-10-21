@@ -372,7 +372,34 @@ the Part 3 sampling-step comparison. Parts 4 and 5 remain pending.
 
 ## Part 4: The Same Predictor on Photographs
 
-Status: pending implementation and verification.
+The local pretrained CIFAR model is stored under
+`inputs/cifar-model/`. It consists of `config.json` and
+`diffusion_pytorch_model.safetensors` for the inspected `UNet2DModel`
+configuration. The loader in `scripts/load_cifar_checkpoint.py` reads the
+Safetensors header directly and maps every local checkpoint tensor into a
+float32 NumPy parameter dictionary without modifying the source file.
+
+The JAX implementation in `scripts/cifar_unet.py` follows the local
+configuration: 32 by 32 RGB input, block channels `[128, 256, 256, 256]`,
+two ResNet layers per down block, the configured attention blocks, sinusoidal
+positional time embedding, GroupNorm, time-conditioned ResNet blocks, skip
+connections, and the output normalization and convolution. The canonical
+model layout is NCHW, `(batch, channels, height, width)`. The forward
+interface accepts mathematical noise levels `t` from `1` through `1000` and
+passes `t - 1` to the checkpoint's zero-based timestep embedding.
+
+Run the local forward-pass smoke test with:
+
+```bash
+uv run python scripts/smoke_test_cifar_unet.py
+```
+
+The results are saved to `artifacts/part4_cifar_unet_smoke_test.json`. The
+test covers batch sizes `1` and `4` at `t = 1`, `500`, and `1000`. All six
+outputs have shape `(batch, 3, 32, 32)`, contain finite values, and all 328
+checkpoint tensors are mapped with no unused or missing tensors. This verifies
+parameter loading and forward execution only; full 1,000-step CIFAR DDPM
+image generation has not been run yet.
 
 ## Part 5: Filling in Missing Pixels with the Downloaded Model
 
