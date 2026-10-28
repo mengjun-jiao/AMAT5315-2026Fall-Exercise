@@ -1,0 +1,28 @@
+from pathlib import Path
+import json,numpy as np
+root=Path(__file__).resolve().parent.parent;a=root/'artifacts';failures=[]
+def load(n):return json.loads((a/n).read_text(encoding='utf8'))
+def check(label,ok):
+ print(('PASS ' if ok else 'FAIL ')+label)
+ if not ok:failures.append(label)
+one=load('part1.json');check('three embedding relations and shuffle controls',len(one)==3 and all(len(v['pairs'])==9 and v['means'][0]>=.3 and abs(v['means'][1])<=.15 for v in one.values()))
+two=load('part2.json');m=two['models'];check('story split, token ratio and decode mismatches',two['stories']==[24867,2763] and 2.04<two['characters_per_token']<2.06 and two['decode_mismatches']==3)
+check('enumerated probability sums',max(abs(x-1) for x in two['normalization_sums'])<1e-12)
+check('uniform through trigram nats and perplexities',all(abs(m[k]['nats']-n)<=.03 and abs(m[k]['perplexity']/p-1)<=.03 for k,n,p in [('uniform',6.238,512),('1',4.839,126.4),('2',3.038,20.9),('3',2.094,8.12)]))
+b=two['bigram_sampling'];check('bigram 250000 samples, 20 contexts and valid expected counts',b['draws']==250000 and len(b['contexts'])==20 and b['p']>.001 and b['minimum_pooled_expected']>=5)
+check('4-gram best; 5/6-gram loss and unseen rates',min(range(1,7),key=lambda n:m[str(n)]['bpc'])==4 and all(abs(m[str(n)]['bpc']-v)<=.03 for n,v in [(4,1.310),(5,1.46),(6,1.79)]) and all(abs(m[str(n)]['unseen']-v)<=.02 for n,v in [(3,.006),(4,.042),(5,.122),(6,.235)]))
+mlp=load('part3_mlp.json');check('one-token MLP vs bigram within .01',mlp['steps']==4000 and mlp['batch_examples']==16384 and abs(mlp['heldout_nats']-m['2']['nats'])<=.01)
+mem=load('part3_memory.json');sl=mem['slopes']; check('memory slopes, original run: '+str({k:round(v,3) for k,v in sl.items()}),all(abs(sl[k]-1)<=.1 for k in ['outer','least_squares','relu']) and abs(sl['relu2']-2)<=.15 and sl['relu3']>2.5)
+repeat=load('part3_relu_repeat.json');check('independent ReLU repeat within .1 of slope 1',abs(repeat['slope']-1)<=.1)
+trials=load('part3_memory_trials.json')['draws'];check('raw memory draws: 3 per dimension and size',all(len(trials[str(d)][str(2**i)])==3 for d in [16,32,64] for i in range(3,17)))
+check('capacity d=64 and least squares small-case error',50<=mem['capacities']['outer'][2]<=85 and 100<=mem['capacities']['least_squares'][2]<=170 and load('part3_small_validation.json')['max_median_error']<1e-10)
+four=load('part4.json')['ratios'];check('softmax R<.1 and ReLU^2 R>1 at M=4096',all(four[f'{n}_softmax']<.1 for n in [64,256,1024,4096]) and four['4096_relu2']>1)
+check('M=1024 outer/ReLU within 15% of theory',abs(four['1024_outer']/4-1)<.15 and abs(four['1024_relu']/np.sqrt(8)-1)<.15)
+five=load('part5_training.json');s=load('part5_sampling.json');tests=s['tests'];check('transformer bpc beats 4-gram',five['steps']==6000 and five['batch_sequences']==32 and five['bpc']<m['4']['bpc'])
+check('transformer after 32 tokens beats trigram',max(five['nats_by_position'][31:])<m['3']['nats'])
+check('four samplers: actual counts 100000, p>.001, expected>=5',all(sum(tests[k]['observed'])==100000 and tests[k]['p']>.001 and tests[k]['min_expected']>=5 for k in ['temperature','top-k','top-p','min-p']))
+check('all displayed model samples contain 60 token ids',all(len(v)==60 for v in s['sample_token_ids'].values()) and len(s['sample_token_ids'])==9)
+check('temperature .0001 and self-consistency',tests['greedy_draws_match'] and abs(tests['self_consistency_1.0']['z'])<4 and abs(tests['self_consistency_0.7']['z'])>40)
+six=load('part6.json');v=six['parameters'];check('scaling parameters, bootstrap, residuals and ratio',.32<=v['alpha']<=.38 and .32<=v['beta']<=.42 and 1.75<=v['E']<=1.9 and six['bootstrap_replicates']==400 and six['optimizer_successes']==400 and abs(six['mean_log_residual_fit'])<.005 and six['mean_log_residual_printed']>.01 and 10<=six['ratio']<=30)
+if failures:raise SystemExit(f'{len(failures)} verification(s) failed: '+', '.join(failures))
+print('All listed checks passed.')
