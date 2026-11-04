@@ -1,0 +1,33 @@
+usage = "infer --model asia.uai --evidence AD --out artifacts/AD"
+description = "Exact and approximate inference from local UAI factors; explicit observations and output path."
+
+[args]
+model = "UAI MARKOV model path; this implementation supports binary variables"
+evidence = "prior, AD, ADX, or a UAI .evid file"
+out = "output directory"
+query = "comma-separated query IDs; required for models other than ASIA"
+
+[writes]
+"<out>/run.json" = "observations, evidence mass, marginal distributions, joint T,L for ASIA, and independent enumeration comparison"
+stdout = "evidence probability, disease probabilities, discrepancies, matrix and Ising checks"
+
+[args.ordering]
+order = "scalar evidence order: random, greedy, or treesa; default greedy"
+seed = "required for random and treesa; omitted for greedy; TreeSA 0.2.6 first-trial seed is 42"
+plan = "replay a saved scalar-query plan"
+analyze = "analyze a saved scalar-query plan without evaluating tensors"
+
+[writes.ordering]
+"<out>/order.json" = "scalar contraction plan, planning method, settings, and seed"
+"<out>/query-<id>-order.json" = "contraction plan for each unobserved query"
+"<out>/complexity.json" = "pair work, retained labels, total work, and largest input/intermediate"
+
+[args.bp]
+method = "exact (default) or bp"
+damping = "fraction of proposed message used; required for bp"
+tolerance = "maximum undamped message residual; required for bp"
+max-sweeps = "iteration limit; required for bp"
+
+[writes.bp]
+"<out>/run.json" = "BP settings, observations, final marginals and messages; per-sweep beliefs, undamped residual, and cumulative update work"
+stdout = "BP sweep, undamped residual and cumulative update work"

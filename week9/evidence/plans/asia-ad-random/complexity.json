@@ -1,0 +1,168 @@
+{
+  "largest_generated_entries": 32,
+  "largest_tensor_entries": 32,
+  "steps": [
+    {
+      "input_labels": [
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          3,
+          1
+        ]
+      ],
+      "inputs": [
+        3,
+        4
+      ],
+      "output": 7,
+      "output_entries": 32,
+      "retained_labels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "work": 32
+    },
+    {
+      "input_labels": [
+        [
+          3,
+          2
+        ],
+        [
+          1
+        ]
+      ],
+      "inputs": [
+        2,
+        0
+      ],
+      "output": 8,
+      "output_entries": 8,
+      "retained_labels": [
+        1,
+        2,
+        3
+      ],
+      "work": 8
+    },
+    {
+      "input_labels": [
+        [
+          5,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "inputs": [
+        6,
+        8
+      ],
+      "output": 9,
+      "output_entries": 32,
+      "retained_labels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "work": 32
+    },
+    {
+      "input_labels": [
+        [
+          2
+        ],
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      ],
+      "inputs": [
+        1,
+        7
+      ],
+      "output": 10,
+      "output_entries": 32,
+      "retained_labels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "work": 32
+    },
+    {
+      "input_labels": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        [
+          6,
+          5
+        ]
+      ],
+      "inputs": [
+        9,
+        5
+      ],
+      "output": 11,
+      "output_entries": 32,
+      "retained_labels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "work": 64
+    },
+    {
+      "input_labels": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      ],
+      "inputs": [
+        11,
+        10
+      ],
+      "output": 12,
+      "output_entries": 1,
+      "retained_labels": [],
+      "work": 32
+    }
+  ],
+  "total_work": 200,
+  "units": "one pair cost = product of dimensions in the union of input labels"
+}

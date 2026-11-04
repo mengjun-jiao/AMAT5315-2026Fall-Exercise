@@ -1,0 +1,11 @@
+/target/
+/.cargo/
+/.rustup/
+/artifacts/
+/runs/
+/asia.uai
+/promedus/
+/week9-learning-sheet.pdf*
+/.venv/
+/.install/
+__pycache__/

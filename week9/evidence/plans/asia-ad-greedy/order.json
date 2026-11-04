@@ -1,0 +1,172 @@
+{
+  "method": "greedy",
+  "seed": null,
+  "query": [],
+  "input_scopes": [
+    [
+      1
+    ],
+    [
+      2
+    ],
+    [
+      3,
+      2
+    ],
+    [
+      4,
+      2
+    ],
+    [
+      5,
+      3,
+      1
+    ],
+    [
+      6,
+      5
+    ],
+    [
+      5,
+      4
+    ]
+  ],
+  "steps": [
+    {
+      "inputs": [
+        3,
+        6
+      ],
+      "output": 7,
+      "input_labels": [
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          4
+        ]
+      ],
+      "retained_labels": [
+        2,
+        5
+      ],
+      "work": 8,
+      "output_entries": 4
+    },
+    {
+      "inputs": [
+        0,
+        4
+      ],
+      "output": 8,
+      "input_labels": [
+        [
+          1
+        ],
+        [
+          5,
+          3,
+          1
+        ]
+      ],
+      "retained_labels": [
+        3,
+        5
+      ],
+      "work": 8,
+      "output_entries": 4
+    },
+    {
+      "inputs": [
+        5,
+        8
+      ],
+      "output": 9,
+      "input_labels": [
+        [
+          6,
+          5
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "retained_labels": [
+        3,
+        5
+      ],
+      "work": 8,
+      "output_entries": 4
+    },
+    {
+      "inputs": [
+        7,
+        9
+      ],
+      "output": 10,
+      "input_labels": [
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "retained_labels": [
+        2,
+        3
+      ],
+      "work": 8,
+      "output_entries": 4
+    },
+    {
+      "inputs": [
+        2,
+        10
+      ],
+      "output": 11,
+      "input_labels": [
+        [
+          3,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "retained_labels": [
+        2
+      ],
+      "work": 4,
+      "output_entries": 2
+    },
+    {
+      "inputs": [
+        1,
+        11
+      ],
+      "output": 12,
+      "input_labels": [
+        [
+          2
+        ],
+        [
+          2
+        ]
+      ],
+      "retained_labels": [],
+      "work": 2,
+      "output_entries": 1
+    }
+  ],
+  "total_work": 38,
+  "largest_tensor": 8,
+  "largest_generated": 4,
+  "settings": {}
+}

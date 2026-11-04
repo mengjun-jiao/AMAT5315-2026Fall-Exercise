@@ -1,0 +1,75 @@
+{
+  "description": "Reviewed contraction plans and scalar complexity; no model values or raw run logs.",
+  "files": [
+    {
+      "file": "asia-ad-random/order.json",
+      "source": "runs/random/order.json",
+      "sha256": "5daef7c9a84ba7a7b44b2519bdd1c26020744e56f20bc89ada36eb8b42839361"
+    },
+    {
+      "file": "asia-ad-random/complexity.json",
+      "source": "runs/random/complexity.json",
+      "sha256": "2125e3c13d1c15a092e4983b2bc2f9a6bf6ddd55770760f3bfa6f56a17b661db"
+    },
+    {
+      "file": "asia-ad-greedy/order.json",
+      "source": "runs/greedy/order.json",
+      "sha256": "93c4fc0e456ad0e392b3460edc17fa8f16cca8a67a80831c32242f710274a173"
+    },
+    {
+      "file": "asia-ad-greedy/complexity.json",
+      "source": "runs/greedy/complexity.json",
+      "sha256": "bc907f2fdbf07590e7dd84768f33bc42c93f249a3e9a20f49947c86a9803cd74"
+    },
+    {
+      "file": "promedus-greedy/order.json",
+      "source": "artifacts/promedus-greedy/order.json",
+      "sha256": "269ecece312ce37f8b0927b5797ac2b2a37862d337b71b7055da491beb05d3d6"
+    },
+    {
+      "file": "promedus-greedy/complexity.json",
+      "source": "artifacts/promedus-greedy/complexity.json",
+      "sha256": "5e89c69b747ad50b1a40edede88c3d2215e517edc0cfefaa338cffe610c70375"
+    },
+    {
+      "file": "promedus-greedy/query-59-order.json",
+      "source": "artifacts/promedus-greedy/query-59-order.json",
+      "sha256": "7ddfa1689937afe600d002ddedc53b670979a1b34c48c275cf7c4ebbf929e2d3"
+    },
+    {
+      "file": "promedus-greedy/query-102-order.json",
+      "source": "artifacts/promedus-greedy/query-102-order.json",
+      "sha256": "a2925b5ca9f49c4d5a72dc54989ffee75fc48bc56f81e8d36928ddd4e0d0af8c"
+    },
+    {
+      "file": "promedus-greedy/query-139-order.json",
+      "source": "artifacts/promedus-greedy/query-139-order.json",
+      "sha256": "65bee6b4b816d4ee1eee99c0773fc732e62789318884ccf469fdc01dd695106c"
+    },
+    {
+      "file": "promedus-treesa/order.json",
+      "source": "artifacts/promedus-treesa/order.json",
+      "sha256": "be6df5c40d176ce56beb34ffd01b9196d5467c9b5549e61460dee43ed47c6972"
+    },
+    {
+      "file": "promedus-treesa/complexity.json",
+      "source": "artifacts/promedus-treesa/complexity.json",
+      "sha256": "ba8830e5b2de46848b3d41c831c388c1ab6514d4be2e12800a6ad6e2cfdae995"
+    },
+    {
+      "file": "promedus-treesa/query-59-order.json",
+      "source": "artifacts/promedus-treesa/query-59-order.json",
+      "sha256": "eed8f970bc657a29474c7abcf047f335c6fff22e215c7c5d0b346cd607b0e586"
+    },
+    {
+      "file": "promedus-treesa/query-102-order.json",
+      "source": "artifacts/promedus-treesa/query-102-order.json",
+      "sha256": "f0b0d0d0fd8fcb2e46467b9585d0146348b5a601cdab4f5f92095920fb0c4bd2"
+    },
+    {
+      "file": "promedus-treesa/query-139-order.json",
+      "source": "artifacts/promedus-treesa/query-139-order.json",
+      "sha256": "b31dcb9e02a72f8c623feabcf3c4d8c81849e9cde8ec4e73aba2e94a539cbf66"
+    }
+  ]
+}
