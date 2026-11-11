@@ -1,0 +1,13 @@
+/target/
+/.cargo/
+/.rustup/
+/.venv/
+/.install/
+/artifacts/*
+!/artifacts/svd.png
+!/artifacts/boundary-critical.png
+!/artifacts/trg-critical.png
+/runs/
+/references/
+/week10-learning-sheet.pdf*
+__pycache__/
