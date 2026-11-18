@@ -1,0 +1,12 @@
+/target/
+/.cargo/
+/.rustup/
+/.install/
+/.venv/
+/runs/
+/artifacts/*
+!/artifacts/gates.png
+!/artifacts/factoring.png
+!/artifacts/nqueens.png
+/week11-learning-sheet.pdf*
+__pycache__/
