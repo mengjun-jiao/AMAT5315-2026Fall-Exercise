@@ -1,0 +1,14 @@
+/artifacts/*
+!/artifacts/gap.png
+!/artifacts/bnb.png
+!/artifacts/neural_bnb.png
+!/artifacts/eval.png
+/target/
+/week12-learning-sheet.pdf
+/.cargo/
+/.install/
+/.tools/
+/.uv-cache/
+/.ruff_cache/
+/.venv/
+__pycache__/
